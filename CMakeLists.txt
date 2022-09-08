@@ -67,6 +67,6 @@ add_compile_definitions(
         $<$<C_COMPILER_ID:MSVC>:_CRT_NONSTDC_NO_WARNINGS>
 )
 
-add_library(Dx8InputManager SHARED Plugin.cpp Parameters.cpp Joystick.cpp Mouse.cpp DX8InputManager.cpp DX8InputManager.h)
+add_library(Dx8InputManager SHARED Plugin.cpp Parameters.cpp Joystick.cpp Mouse.cpp DX8InputManager.cpp DX8InputManager.h DX8InputManager.rc)
 target_include_directories(Dx8InputManager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(Dx8InputManager PRIVATE CK2 VxMath Winmm dinput8 dxguid)
