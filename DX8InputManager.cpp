@@ -365,55 +365,54 @@ CKERROR DX8InputManager::PreProcess()
             m_Keyboard->Acquire();
             hr = m_Keyboard->GetDeviceData(sizeof(DIDEVICEOBJECTDATA), m_KeyInBuffer, (LPDWORD)&m_NumberOfKeyInBuffer, 0);
         }
-    }
 
-    if (m_Paused)
-    {
-        memset(m_KeyInBuffer, 0, sizeof(m_KeyInBuffer));
-        memset(m_KeyboardStamps, 0, sizeof(m_KeyboardStamps));
-        memset(m_KeyboardState, 0, sizeof(m_KeyboardState));
-        m_NumberOfKeyInBuffer = 0;
-    }
-    else
-    {
-        if (hr <= DI_NOTATTACHED)
+        if (m_Paused)
         {
-            CKDWORD iKey;
-            for (int i = 0; i < KEYBOARD_BUFFER_SIZE; i++)
+            memset(m_KeyInBuffer, 0, sizeof(m_KeyInBuffer));
+            memset(m_KeyboardStamps, 0, sizeof(m_KeyboardStamps));
+            memset(m_KeyboardState, 0, sizeof(m_KeyboardState));
+            m_NumberOfKeyInBuffer = 0;
+        }
+        else
+        {
+            if (hr <= DI_NOTATTACHED)
             {
-                iKey = m_KeyInBuffer[i].dwOfs;
-                if ((m_KeyInBuffer[i].dwData & 0x80) == 0)
+                CKDWORD iKey;
+                for (int i = 0; i < KEYBOARD_BUFFER_SIZE; i++)
                 {
-                    m_KeyboardState[iKey] |= KS_RELEASED;
-                    m_KeyboardStamps[iKey] = m_KeyInBuffer[i].dwTimeStamp - m_KeyboardStamps[iKey];
-                }
-                else
-                {
-                    m_KeyboardState[iKey] |= KS_PRESSED;
-                    m_KeyboardStamps[iKey] = m_KeyInBuffer[i].dwTimeStamp;
+                    iKey = m_KeyInBuffer[i].dwOfs;
+                    if ((m_KeyInBuffer[i].dwData & 0x80) == 0)
+                    {
+                        m_KeyboardState[iKey] |= KS_RELEASED;
+                        m_KeyboardStamps[iKey] = m_KeyInBuffer[i].dwTimeStamp - m_KeyboardStamps[iKey];
+                    }
+                    else
+                    {
+                        m_KeyboardState[iKey] |= KS_PRESSED;
+                        m_KeyboardStamps[iKey] = m_KeyInBuffer[i].dwTimeStamp;
+                    }
                 }
             }
-        }
-        if (m_EnableKeyboardRepetition)
-        {
-            for (int i = 0; i < KEYBOARD_BUFFER_SIZE; i++)
+            if (m_EnableKeyboardRepetition)
             {
-                if (m_KeyboardState[i] == KS_PRESSED)
+                for (int i = 0; i < KEYBOARD_BUFFER_SIZE; i++)
                 {
-                    if (m_KeyboardStamps[i] > 0 && ::GetTickCount() - m_KeyboardStamps[i] > m_KeyboardRepeatDelay)
-                        m_KeyboardStamps[i] = -m_KeyboardStamps[i];
-                    if (m_KeyboardStamps[i] < 0)
+                    if (m_KeyboardState[i] == KS_PRESSED)
                     {
-                        CKDWORD tick = ::GetTickCount();
-                        for (int t = m_KeyboardStamps[i] - m_KeyboardRepeatDelay + tick; t > (int)m_KeyboardRepeatInterval;)
+                        if (m_KeyboardStamps[i] > 0 && ::GetTickCount() - m_KeyboardStamps[i] > m_KeyboardRepeatDelay)
+                            m_KeyboardStamps[i] = -m_KeyboardStamps[i];
+                        if (m_KeyboardStamps[i] < 0)
                         {
-                            t -= m_KeyboardRepeatInterval;
-                            m_KeyboardStamps[i] -= m_KeyboardRepeatInterval;
-                            if (m_NumberOfKeyInBuffer < KEYBOARD_BUFFER_SIZE)
+                            for (int t = m_KeyboardStamps[i] - m_KeyboardRepeatDelay + ::GetTickCount(); t > (int)m_KeyboardRepeatInterval;)
                             {
-                                m_KeyInBuffer[m_NumberOfKeyInBuffer].dwData = 0x80;
-                                m_KeyInBuffer[m_NumberOfKeyInBuffer].dwOfs = i;
-                                m_KeyInBuffer[m_NumberOfKeyInBuffer].dwTimeStamp = -m_KeyboardStamps[i];
+                                t -= m_KeyboardRepeatInterval;
+                                m_KeyboardStamps[i] -= m_KeyboardRepeatInterval;
+                                if (m_NumberOfKeyInBuffer < KEYBOARD_BUFFER_SIZE)
+                                {
+                                    m_KeyInBuffer[m_NumberOfKeyInBuffer].dwData = 0x80;
+                                    m_KeyInBuffer[m_NumberOfKeyInBuffer].dwOfs = i;
+                                    m_KeyInBuffer[m_NumberOfKeyInBuffer].dwTimeStamp = -m_KeyboardStamps[i];
+                                }
                             }
                         }
                     }
