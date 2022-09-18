@@ -304,18 +304,16 @@ CKERROR DX8InputManager::OnCKPause()
 CKERROR DX8InputManager::OnCKPlay()
 {
     HWND hWnd = (HWND)m_Context->GetMainWindow();
-    CKRenderContext *rc = m_Context->GetPlayerRenderContext();
-    const CKDWORD dwCoopFlags = (rc && rc->IsFullScreen()) ? DISCL_NOWINKEY : DISCL_NONEXCLUSIVE | DISCL_BACKGROUND;
     if (m_Keyboard)
     {
         m_Keyboard->Unacquire();
-        m_Keyboard->SetCooperativeLevel(hWnd, dwCoopFlags);
+        m_Keyboard->SetCooperativeLevel(hWnd, DISCL_NONEXCLUSIVE | DISCL_BACKGROUND);
         m_Keyboard->Acquire();
     }
     if (m_Mouse.m_Device)
     {
         m_Mouse.m_Device->Unacquire();
-        m_Mouse.m_Device->SetCooperativeLevel(hWnd, dwCoopFlags);
+        m_Mouse.m_Device->SetCooperativeLevel(hWnd, DISCL_NONEXCLUSIVE | DISCL_BACKGROUND);
         m_Mouse.m_Device->Acquire();
     }
     for (int i = 0; i < m_JoystickCount; i++)
@@ -323,7 +321,7 @@ CKERROR DX8InputManager::OnCKPlay()
         if (m_Joysticks[i].m_Device)
         {
             m_Joysticks[i].m_Device->Unacquire();
-            m_Joysticks[i].m_Device->SetCooperativeLevel(hWnd, dwCoopFlags);
+            m_Joysticks[i].m_Device->SetCooperativeLevel(hWnd, DISCL_NONEXCLUSIVE | DISCL_BACKGROUND);
             m_Joysticks[i].m_Device->Acquire();
         }
     }
