@@ -352,12 +352,10 @@ CKERROR DX8InputManager::OnCKPlay()
 
 CKERROR DX8InputManager::PreProcess()
 {
-    HRESULT hr;
-
     if (m_Keyboard)
     {
         m_NumberOfKeyInBuffer = KEYBOARD_BUFFER_SIZE;
-        hr = m_Keyboard->GetDeviceData(sizeof(DIDEVICEOBJECTDATA), m_KeyInBuffer, (LPDWORD)&m_NumberOfKeyInBuffer, 0);
+        HRESULT hr = m_Keyboard->GetDeviceData(sizeof(DIDEVICEOBJECTDATA), m_KeyInBuffer, (LPDWORD)&m_NumberOfKeyInBuffer, 0);
         if (hr == DIERR_INPUTLOST || hr == DIERR_NOTACQUIRED)
         {
             m_Keyboard->Acquire();
