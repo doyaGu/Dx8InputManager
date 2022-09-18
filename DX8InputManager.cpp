@@ -78,7 +78,7 @@ CKBOOL DX8InputManager::IsMouseButtonDown(CK_MOUSEBUTTON iButton)
 
 CKBOOL DX8InputManager::IsMouseClicked(CK_MOUSEBUTTON iButton)
 {
-    return (m_Mouse.m_State.rgbButtons[iButton] & KS_PRESSED) != 0 && (m_Mouse.m_LastButtons[iButton] & KS_PRESSED) != 0;
+    return (m_Mouse.m_State.rgbButtons[iButton] & KS_PRESSED) != 0 && (m_Mouse.m_LastButtons[iButton] & KS_PRESSED) == 0;
 }
 
 CKBOOL DX8InputManager::IsMouseToggled(CK_MOUSEBUTTON iButton)
