@@ -14,7 +14,9 @@ CKBOOL DX8InputManager::IsKeyboardRepetitionEnabled()
 
 CKBOOL DX8InputManager::IsKeyDown(CKDWORD iKey, CKDWORD *oStamp)
 {
-    if (iKey >= KEYBOARD_BUFFER_SIZE || (m_KeyboardState[iKey] & KS_PRESSED) == 0)
+    if (iKey >= KEYBOARD_BUFFER_SIZE)
+        return FALSE;
+    if ((m_KeyboardState[iKey] & KS_PRESSED) == 0)
         return FALSE;
     if (oStamp) *oStamp = m_KeyboardStamps[iKey];
     return TRUE;
@@ -27,7 +29,9 @@ CKBOOL DX8InputManager::IsKeyUp(CKDWORD iKey)
 
 CKBOOL DX8InputManager::IsKeyToggled(CKDWORD iKey, CKDWORD *oStamp)
 {
-    if (iKey >= KEYBOARD_BUFFER_SIZE || (m_KeyboardState[iKey] & KS_RELEASED) == 0)
+    if (iKey >= KEYBOARD_BUFFER_SIZE)
+        return FALSE;
+    if ((m_KeyboardState[iKey] & KS_RELEASED) == 0)
         return FALSE;
     if (oStamp) *oStamp = m_KeyboardStamps[iKey];
     return TRUE;
@@ -550,10 +554,10 @@ void DX8InputManager::ClearBuffers()
 {
     if (m_Keyboard)
     {
-        m_NumberOfKeyInBuffer = 256;
         HRESULT hr;
         do
         {
+            m_NumberOfKeyInBuffer = 256;
             hr = m_Keyboard->GetDeviceData(sizeof(DIDEVICEOBJECTDATA), m_KeyInBuffer, (LPDWORD)&m_NumberOfKeyInBuffer, 0);
             if (hr == DIERR_INPUTLOST || hr == DIERR_NOTACQUIRED)
             {
