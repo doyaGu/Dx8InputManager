@@ -378,18 +378,21 @@ CKERROR DX8InputManager::PreProcess()
             if (hr <= DI_NOTATTACHED)
             {
                 CKDWORD iKey;
-                for (int i = 0; i < KEYBOARD_BUFFER_SIZE; i++)
+                for (int i = 0; i < m_NumberOfKeyInBuffer; i++)
                 {
                     iKey = m_KeyInBuffer[i].dwOfs;
-                    if ((m_KeyInBuffer[i].dwData & 0x80) == 0)
+                    if (iKey < KEYBOARD_BUFFER_SIZE)
                     {
-                        m_KeyboardState[iKey] |= KS_RELEASED;
-                        m_KeyboardStamps[iKey] = m_KeyInBuffer[i].dwTimeStamp - m_KeyboardStamps[iKey];
-                    }
-                    else
-                    {
-                        m_KeyboardState[iKey] |= KS_PRESSED;
-                        m_KeyboardStamps[iKey] = m_KeyInBuffer[i].dwTimeStamp;
+                        if ((m_KeyInBuffer[i].dwData & 0x80) == 0)
+                        {
+                            m_KeyboardState[iKey] |= KS_RELEASED;
+                            m_KeyboardStamps[iKey] = m_KeyInBuffer[i].dwTimeStamp - m_KeyboardStamps[iKey];
+                        }
+                        else
+                        {
+                            m_KeyboardState[iKey] |= KS_PRESSED;
+                            m_KeyboardStamps[iKey] = m_KeyInBuffer[i].dwTimeStamp;
+                        }
                     }
                 }
             }
@@ -515,7 +518,7 @@ void DX8InputManager::Initialize(HWND hWnd)
         dipdw.diph.dwHeaderSize = sizeof(DIPROPHEADER);
         dipdw.diph.dwObj = 0;
         dipdw.diph.dwHow = DIPH_DEVICE;
-        dipdw.dwData = 256;
+        dipdw.dwData = KEYBOARD_BUFFER_SIZE;
         m_Keyboard->SetProperty(DIPROP_BUFFERSIZE, &dipdw.diph);
 
         // Acquire the newly created device.
@@ -557,7 +560,7 @@ void DX8InputManager::ClearBuffers()
         HRESULT hr;
         do
         {
-            m_NumberOfKeyInBuffer = 256;
+            m_NumberOfKeyInBuffer = KEYBOARD_BUFFER_SIZE;
             hr = m_Keyboard->GetDeviceData(sizeof(DIDEVICEOBJECTDATA), m_KeyInBuffer, (LPDWORD)&m_NumberOfKeyInBuffer, 0);
             if (hr == DIERR_INPUTLOST || hr == DIERR_NOTACQUIRED)
             {
