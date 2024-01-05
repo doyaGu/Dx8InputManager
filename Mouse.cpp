@@ -85,9 +85,9 @@ void DX8InputManager::CKMouse::Poll(CKBOOL pause)
             case DIMOFS_BUTTON2:
             case DIMOFS_BUTTON3:
                 if ((m_Buffer[i].dwData & 0x80) != 0)
-                    m_State.rgbButtons[m_Buffer[i].dwOfs - DIMOFS_BUTTON0] |= KS_RELEASED;
-                else
                     m_State.rgbButtons[m_Buffer[i].dwOfs - DIMOFS_BUTTON0] |= KS_PRESSED;
+                else
+                    m_State.rgbButtons[m_Buffer[i].dwOfs - DIMOFS_BUTTON0] |= KS_RELEASED;
                 break;
             }
         }
