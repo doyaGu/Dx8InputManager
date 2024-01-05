@@ -366,16 +366,9 @@ CKERROR DX8InputManager::PreProcess()
             hr = m_Keyboard->GetDeviceData(sizeof(DIDEVICEOBJECTDATA), m_KeyInBuffer, (LPDWORD)&m_NumberOfKeyInBuffer, 0);
         }
 
-        if (m_Paused)
+        if (!m_Paused)
         {
-            memset(m_KeyInBuffer, 0, sizeof(m_KeyInBuffer));
-            memset(m_KeyboardStamps, 0, sizeof(m_KeyboardStamps));
-            memset(m_KeyboardState, 0, sizeof(m_KeyboardState));
-            m_NumberOfKeyInBuffer = 0;
-        }
-        else
-        {
-            if (hr <= DI_NOTATTACHED)
+            if (hr == DI_OK)
             {
                 CKDWORD iKey;
                 for (int i = 0; i < m_NumberOfKeyInBuffer; i++)
@@ -383,19 +376,20 @@ CKERROR DX8InputManager::PreProcess()
                     iKey = m_KeyInBuffer[i].dwOfs;
                     if (iKey < KEYBOARD_BUFFER_SIZE)
                     {
-                        if ((m_KeyInBuffer[i].dwData & 0x80) == 0)
+                        if ((m_KeyInBuffer[i].dwData & 0x80) != 0)
                         {
-                            m_KeyboardState[iKey] |= KS_RELEASED;
-                            m_KeyboardStamps[iKey] = m_KeyInBuffer[i].dwTimeStamp - m_KeyboardStamps[iKey];
+							m_KeyboardState[iKey] |= KS_PRESSED;
+                            m_KeyboardStamps[iKey] = m_KeyInBuffer[i].dwTimeStamp;
                         }
                         else
                         {
-                            m_KeyboardState[iKey] |= KS_PRESSED;
-                            m_KeyboardStamps[iKey] = m_KeyInBuffer[i].dwTimeStamp;
+							m_KeyboardState[iKey] |= KS_RELEASED;
+                            m_KeyboardStamps[iKey] = m_KeyInBuffer[i].dwTimeStamp - m_KeyboardStamps[iKey];
                         }
                     }
                 }
             }
+
             if (m_EnableKeyboardRepetition)
             {
                 for (int i = 0; i < KEYBOARD_BUFFER_SIZE; i++)
@@ -421,6 +415,13 @@ CKERROR DX8InputManager::PreProcess()
                     }
                 }
             }
+        }
+        else
+        {
+            memset(m_KeyInBuffer, 0, sizeof(m_KeyInBuffer));
+            memset(m_KeyboardStamps, 0, sizeof(m_KeyboardStamps));
+            memset(m_KeyboardState, 0, sizeof(m_KeyboardState));
+            m_NumberOfKeyInBuffer = 0;
         }
     }
 
@@ -479,7 +480,6 @@ DX8InputManager::DX8InputManager(CKContext *context) : CKInputManager(context, "
 
 void DX8InputManager::Initialize(HWND hWnd)
 {
-
     // Register with the DirectInput subsystem and get a pointer
     // to a IDirectInput interface we can use.
     // Create a DInput object
