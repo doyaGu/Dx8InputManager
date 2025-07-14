@@ -368,7 +368,7 @@ CKERROR DX8InputManager::PreProcess()
 
         if (!m_Paused)
         {
-            if (hr == DI_OK)
+            if (hr <= DI_NOTATTACHED)
             {
                 CKDWORD iKey;
                 for (int i = 0; i < m_NumberOfKeyInBuffer; i++)
@@ -378,12 +378,12 @@ CKERROR DX8InputManager::PreProcess()
                     {
                         if ((m_KeyInBuffer[i].dwData & 0x80) != 0)
                         {
-							m_KeyboardState[iKey] |= KS_PRESSED;
+                            m_KeyboardState[iKey] |= KS_PRESSED;
                             m_KeyboardStamps[iKey] = m_KeyInBuffer[i].dwTimeStamp;
                         }
                         else
                         {
-							m_KeyboardState[iKey] |= KS_RELEASED;
+                            m_KeyboardState[iKey] |= KS_RELEASED;
                             m_KeyboardStamps[iKey] = m_KeyInBuffer[i].dwTimeStamp - m_KeyboardStamps[iKey];
                         }
                     }
