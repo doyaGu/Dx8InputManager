@@ -71,7 +71,7 @@ void DX8InputManager::CKMouse::Poll(CKBOOL pause)
 
     if (pause) m_NumberOfBuffer = 0;
 
-    if (hr <= DI_NOTATTACHED)
+    if (SUCCEEDED(hr))
     {
         for (int i = 0; i < m_NumberOfBuffer; i++)
         {
