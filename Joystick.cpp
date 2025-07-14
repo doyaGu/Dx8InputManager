@@ -59,7 +59,7 @@ void DX8InputManager::CKJoystick::Poll()
         if (fabs(xr) < 0.01) xr = 0.0;
         if (fabs(yr) < 0.01) yr = 0.0;
         if (fabs(zr) < 0.01) zr = 0.0;
-        m_Position.Set((float)xr, (float)yr, (float)zr);
+        m_Rotation.Set((float)xr, (float)yr, (float)zr);
 
         double slider[2] = {
             (((state.rglSlider[0] - m_Umin) * 2.0) / (double)(m_Umax - m_Umin)) - 1.0,
