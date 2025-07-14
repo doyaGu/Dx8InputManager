@@ -34,9 +34,6 @@ void DX8InputManager::CKMouse::Init(HWND hWnd)
     dipdw.dwData = 256;
     if (FAILED(m_Device->SetProperty(DIPROP_BUFFERSIZE, &dipdw.diph)))
         ::OutputDebugString(TEXT("Input Manager =  Failed : SetProperty (Mouse) Buffered Data"));
-    dipdw.dwData = -1;
-    if (FAILED(m_Device->SetProperty(DIPROP_BUFFERSIZE, &dipdw.diph)))
-        ::OutputDebugString(TEXT("Input Manager =  Failed : SetProperty (Mouse) Buffered Data"));
 }
 
 void DX8InputManager::CKMouse::Release()
