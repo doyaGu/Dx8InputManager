@@ -409,6 +409,7 @@ CKERROR DX8InputManager::PreProcess()
                                     m_KeyInBuffer[m_NumberOfKeyInBuffer].dwData = 0x80;
                                     m_KeyInBuffer[m_NumberOfKeyInBuffer].dwOfs = i;
                                     m_KeyInBuffer[m_NumberOfKeyInBuffer].dwTimeStamp = -m_KeyboardStamps[i];
+                                    ++m_NumberOfKeyInBuffer;
                                 }
                             }
                         }
