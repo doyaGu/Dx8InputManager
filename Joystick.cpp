@@ -71,6 +71,7 @@ void DX8InputManager::CKJoystick::Poll()
 
         m_PointOfViewAngle = (state.rgdwPOV[0] != 0xFFFF) ? state.rgdwPOV[0] : -1;
 
+        m_Buttons = 0;
         for (int i = 0; i < 32; i++)
         {
             if ((state.rgbButtons[i] & 0x80) != 0)
