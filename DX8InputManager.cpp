@@ -544,7 +544,8 @@ void DX8InputManager::Uninitialize()
 
     m_Mouse.Release();
 
-    for (int i = 0; i < sizeof(m_Joysticks) / sizeof(CKJoystick); i++)
+    // Only release joysticks that were actually initialized
+    for (int i = 0; i < m_JoystickCount; i++)
         m_Joysticks[i].Release();
 
     if (m_DirectInput)
