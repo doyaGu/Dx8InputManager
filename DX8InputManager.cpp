@@ -208,7 +208,7 @@ void DX8InputManager::Pause(CKBOOL pause)
 {
     if (pause && !m_Paused)
     {
-        ::OutputDebugString(TEXT("InPutManager Paused"));
+        ::OutputDebugString(TEXT("InputManager Paused"));
         ClearBuffers();
         m_Paused = pause;
         m_WasPaused = TRUE;  // Set flag to prevent redundant clears in PreProcess
@@ -216,7 +216,7 @@ void DX8InputManager::Pause(CKBOOL pause)
     }
     else if (m_Paused)
     {
-        ::OutputDebugString(TEXT("InPutManager Un-Paused"));
+        ::OutputDebugString(TEXT("InputManager Un-Paused"));
     }
 
     m_Paused = pause;
