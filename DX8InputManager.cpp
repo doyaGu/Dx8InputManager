@@ -211,6 +211,7 @@ void DX8InputManager::Pause(CKBOOL pause)
         ::OutputDebugString(TEXT("InPutManager Paused"));
         ClearBuffers();
         m_Paused = pause;
+        m_WasPaused = TRUE;  // Set flag to prevent redundant clears in PreProcess
         return;
     }
     else if (m_Paused)
@@ -423,11 +424,21 @@ CKERROR DX8InputManager::PreProcess()
         }
         else
         {
-            memset(m_KeyInBuffer, 0, sizeof(m_KeyInBuffer));
-            memset(m_KeyboardStamps, 0, sizeof(m_KeyboardStamps));
-            memset(m_KeyboardState, 0, sizeof(m_KeyboardState));
-            m_NumberOfKeyInBuffer = 0;
+            // Only clear buffers when transitioning to pause state, not every frame
+            if (!m_WasPaused)
+            {
+                memset(m_KeyInBuffer, 0, sizeof(m_KeyInBuffer));
+                memset(m_KeyboardStamps, 0, sizeof(m_KeyboardStamps));
+                memset(m_KeyboardState, 0, sizeof(m_KeyboardState));
+                m_NumberOfKeyInBuffer = 0;
+                m_WasPaused = TRUE;
+            }
         }
+    }
+    else if (m_WasPaused)
+    {
+        // Transitioning from paused to unpaused
+        m_WasPaused = FALSE;
     }
 
     m_Mouse.Poll(m_Paused);
@@ -470,6 +481,7 @@ DX8InputManager::DX8InputManager(CKContext *context) : CKInputManager(context, "
     m_KeyboardRepeatDelay = 50 * (5 * keyboardDelay + 5);
     m_KeyboardRepeatInterval = (CKDWORD)(1000.0 / (keyboardSpeed + 2.5));
     m_Paused = FALSE;
+    m_WasPaused = FALSE;
     m_EnableKeyboardRepetition = FALSE;
 
     Initialize((HWND)m_Context->GetMainWindow());

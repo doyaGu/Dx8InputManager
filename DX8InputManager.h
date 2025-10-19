@@ -179,6 +179,7 @@ protected:
     DIDEVICEOBJECTDATA m_KeyInBuffer[KEYBOARD_BUFFER_SIZE];
     int m_NumberOfKeyInBuffer;
     CKBOOL m_Paused;
+    CKBOOL m_WasPaused;
     CKBOOL m_EnableKeyboardRepetition;
     CKDWORD m_KeyboardRepeatDelay;
     CKDWORD m_KeyboardRepeatInterval;
