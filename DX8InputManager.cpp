@@ -87,6 +87,8 @@ CKBOOL DX8InputManager::IsMouseClicked(CK_MOUSEBUTTON iButton)
 
 CKBOOL DX8InputManager::IsMouseToggled(CK_MOUSEBUTTON iButton)
 {
+    // Check if button was released (bit 1 set)
+    // (state >> 1) & KS_PRESSED is equivalent to (state & KS_RELEASED)
     return (m_Mouse.m_State.rgbButtons[iButton] >> 1) & KS_PRESSED;
 }
 
@@ -279,6 +281,305 @@ IDirectInputDevice2 *DX8InputManager::GetJoystickDxInterface(int iJoystick)
         return m_Joysticks[iJoystick].m_Device;
 }
 
+void DX8InputManager::SetKeyDown(CKDWORD iKey)
+{
+    if (iKey < KEYBOARD_BUFFER_SIZE)
+    {
+        m_KeyboardState[iKey] |= KS_PRESSED;
+        m_KeyboardStamps[iKey] = ::GetTickCount();
+    }
+}
+
+void DX8InputManager::SetKeyUp(CKDWORD iKey)
+{
+    if (iKey < KEYBOARD_BUFFER_SIZE)
+    {
+        m_KeyboardState[iKey] |= KS_RELEASED;
+        m_KeyboardStamps[iKey] = ::GetTickCount();
+    }
+}
+
+void DX8InputManager::SetMouseButtonDown(CK_MOUSEBUTTON iButton)
+{
+    if (iButton < 4)
+    {
+        m_Mouse.m_State.rgbButtons[iButton] |= KS_PRESSED;
+    }
+}
+
+void DX8InputManager::SetMouseButtonUp(CK_MOUSEBUTTON iButton)
+{
+    if (iButton < 4)
+    {
+        m_Mouse.m_State.rgbButtons[iButton] |= KS_RELEASED;
+    }
+}
+
+void DX8InputManager::SetMousePosition(const Vx2DVector &position)
+{
+    m_Mouse.m_Position = position;
+    ::SetCursorPos((int)position.x, (int)position.y);
+}
+
+void DX8InputManager::SetJoystickButtonDown(int iJoystick, int iButton)
+{
+    if (iJoystick >= 0 && iJoystick < m_JoystickCount && iButton >= 0 && iButton < 32)
+    {
+        m_Joysticks[iJoystick].m_Buttons |= (1 << iButton);
+        m_Joysticks[iJoystick].m_Polled = TRUE;
+    }
+}
+
+void DX8InputManager::SetJoystickButtonUp(int iJoystick, int iButton)
+{
+    if (iJoystick >= 0 && iJoystick < m_JoystickCount && iButton >= 0 && iButton < 32)
+    {
+        m_Joysticks[iJoystick].m_Buttons &= ~(1 << iButton);
+        m_Joysticks[iJoystick].m_Polled = TRUE;
+    }
+}
+
+void DX8InputManager::SetJoystickPosition(int iJoystick, const VxVector &position)
+{
+    if (iJoystick >= 0 && iJoystick < m_JoystickCount)
+    {
+        m_Joysticks[iJoystick].m_Position = position;
+        m_Joysticks[iJoystick].m_Polled = TRUE;
+    }
+}
+
+void DX8InputManager::SetKeyboardState(const CKBYTE *states, const int *stamps)
+{
+    if (states)
+    {
+        memcpy(m_KeyboardState, states, sizeof(m_KeyboardState));
+        if (stamps)
+            memcpy(m_KeyboardStamps, stamps, sizeof(m_KeyboardStamps));
+    }
+}
+
+void DX8InputManager::SetMouseState(const Vx2DVector &pos, const CKBYTE *buttons, const VxVector &delta)
+{
+    m_Mouse.m_Position = pos;
+    if (buttons)
+        memcpy(m_Mouse.m_State.rgbButtons, buttons, 4);
+    m_Mouse.m_State.lX = (long)delta.x;
+    m_Mouse.m_State.lY = (long)delta.y;
+    m_Mouse.m_State.lZ = (long)delta.z;
+}
+
+void DX8InputManager::SetJoystickCompleteState(int iJoystick, const VxVector &pos, const VxVector &rot, const Vx2DVector &sliders, CKDWORD buttons, CKDWORD pov)
+{
+    if (iJoystick >= 0 && iJoystick < m_JoystickCount)
+    {
+        m_Joysticks[iJoystick].m_Position = pos;
+        m_Joysticks[iJoystick].m_Rotation = rot;
+        m_Joysticks[iJoystick].m_Sliders = sliders;
+        m_Joysticks[iJoystick].m_Buttons = buttons;
+        m_Joysticks[iJoystick].m_PointOfViewAngle = pov;
+        m_Joysticks[iJoystick].m_Polled = TRUE;
+    }
+}
+
+void DX8InputManager::SetMultipleKeys(const CKDWORD *keys, int count, CKBOOL pressed)
+{
+    if (!keys) return;
+
+    for (int i = 0; i < count; i++)
+    {
+        CKDWORD key = keys[i];
+        if (key < KEYBOARD_BUFFER_SIZE)
+        {
+            if (pressed)
+            {
+                m_KeyboardState[key] |= KS_PRESSED;
+                m_KeyboardStamps[key] = ::GetTickCount();
+            }
+            else
+            {
+                m_KeyboardState[key] |= KS_RELEASED;
+                m_KeyboardStamps[key] = ::GetTickCount();
+            }
+        }
+    }
+}
+
+void DX8InputManager::ClearAllInputState()
+{
+    memset(m_KeyboardState, 0, sizeof(m_KeyboardState));
+    memset(m_KeyboardStamps, 0, sizeof(m_KeyboardStamps));
+    memset(m_Mouse.m_State.rgbButtons, 0, sizeof(m_Mouse.m_State.rgbButtons));
+    memset(m_Mouse.m_LastButtons, 0, sizeof(m_Mouse.m_LastButtons));
+
+    for (int i = 0; i < m_JoystickCount; i++)
+    {
+        m_Joysticks[i].m_Buttons = 0;
+        m_Joysticks[i].m_Position.Set(0, 0, 0);
+        m_Joysticks[i].m_Rotation.Set(0, 0, 0);
+        m_Joysticks[i].m_Sliders.Set(0, 0);
+        m_Joysticks[i].m_PointOfViewAngle = -1;
+    }
+}
+
+CKBOOL DX8InputManager::IsKeyAllowed(CKDWORD key)
+{
+    if (!m_Filter.keyboardEnabled)
+        return FALSE;
+
+    // If allowlist is set, check if key is in the list
+    if (m_Filter.allowedKeys && m_Filter.allowedKeyCount > 0)
+    {
+        for (int i = 0; i < m_Filter.allowedKeyCount; i++)
+        {
+            if (m_Filter.allowedKeys[i] == key)
+                return TRUE;
+        }
+        return FALSE;
+    }
+
+    // No filter set - all keys allowed
+    return TRUE;
+}
+
+// Mouse wheel enhancements
+int DX8InputManager::GetMouseWheelDelta()
+{
+    return m_Mouse.m_State.lZ;
+}
+
+int DX8InputManager::GetMouseWheelPosition()
+{
+    return m_MouseWheelPosition;
+}
+
+void DX8InputManager::SetMouseWheel(int wheelDelta)
+{
+    m_Mouse.m_State.lZ = wheelDelta;
+    m_MouseWheelPosition += wheelDelta;
+    TriggerEvent(4, wheelDelta, 0);
+}
+
+void DX8InputManager::SetMouseWheelPosition(int position)
+{
+    int delta = position - m_MouseWheelPosition;
+    m_Mouse.m_State.lZ = delta;
+    m_MouseWheelPosition = position;
+    TriggerEvent(4, delta, 0);
+}
+
+// Input filtering methods
+void DX8InputManager::SetInputFilter(CKBOOL keyboard, CKBOOL mouse, CKBOOL joystick)
+{
+    m_Filter.keyboardEnabled = keyboard;
+    m_Filter.mouseEnabled = mouse;
+    m_Filter.joystickEnabled = joystick;
+}
+
+void DX8InputManager::SetKeyFilter(const CKDWORD *allowedKeys, int count)
+{
+    if (m_Filter.allowedKeys)
+        delete [] m_Filter.allowedKeys;
+
+    if (allowedKeys && count > 0)
+    {
+        m_Filter.allowedKeys = new CKDWORD[count];
+        if (m_Filter.allowedKeys)
+        {
+            memcpy(m_Filter.allowedKeys, allowedKeys, count * sizeof(CKDWORD));
+            m_Filter.allowedKeyCount = count;
+        }
+        else
+        {
+            // Memory allocation failed
+            ::OutputDebugString(TEXT("DX8InputManager: Failed to allocate memory for key filter"));
+            m_Filter.allowedKeyCount = 0;
+        }
+    }
+    else
+    {
+        m_Filter.allowedKeys = NULL;
+        m_Filter.allowedKeyCount = 0;
+    }
+}
+
+void DX8InputManager::ClearInputFilters()
+{
+    m_Filter.keyboardEnabled = TRUE;
+    m_Filter.mouseEnabled = TRUE;
+    m_Filter.joystickEnabled = TRUE;
+
+    if (m_Filter.allowedKeys)
+    {
+        delete [] m_Filter.allowedKeys;
+        m_Filter.allowedKeys = NULL;
+    }
+    m_Filter.allowedKeyCount = 0;
+}
+
+CKBOOL DX8InputManager::IsInputFiltered(CKDWORD key)
+{
+    return IsKeyAllowed(key);
+}
+
+// Event callback methods
+void DX8InputManager::RegisterEventCallback(InputEventCallback callback, void *userData)
+{
+    if (!callback)
+        return;
+
+    if (m_CallbackCount < 8)
+    {
+        // Check if callback already registered
+        for (int i = 0; i < m_CallbackCount; i++)
+        {
+            if (m_EventCallbacks[i] == callback)
+            {
+                m_CallbackUserData[i] = userData;
+                return;
+            }
+        }
+
+        // Add new callback
+        m_EventCallbacks[m_CallbackCount] = callback;
+        m_CallbackUserData[m_CallbackCount] = userData;
+        m_CallbackCount++;
+    }
+    else
+    {
+        // Warn that callback limit has been reached
+        ::OutputDebugString(TEXT("DX8InputManager: Cannot register callback - maximum limit (8) reached"));
+    }
+}
+
+void DX8InputManager::UnregisterEventCallback(InputEventCallback callback)
+{
+    for (int i = 0; i < m_CallbackCount; i++)
+    {
+        if (m_EventCallbacks[i] == callback)
+        {
+            // Shift remaining callbacks
+            for (int j = i; j < m_CallbackCount - 1; j++)
+            {
+                m_EventCallbacks[j] = m_EventCallbacks[j + 1];
+                m_CallbackUserData[j] = m_CallbackUserData[j + 1];
+            }
+            m_CallbackCount--;
+            break;
+        }
+    }
+}
+
+void DX8InputManager::TriggerEvent(CKDWORD eventType, CKDWORD param1, CKDWORD param2)
+{
+    for (int i = 0; i < m_CallbackCount; i++)
+    {
+        if (m_EventCallbacks[i])
+        {
+            m_EventCallbacks[i](eventType, param1, param2, m_CallbackUserData[i]);
+        }
+    }
+}
+
 CKERROR DX8InputManager::OnCKInit()
 {
     if (!m_Keyboard)
@@ -375,17 +676,24 @@ CKERROR DX8InputManager::PreProcess()
                 for (int i = 0; i < m_NumberOfKeyInBuffer; i++)
                 {
                     iKey = m_KeyInBuffer[i].dwOfs;
+
+                    // Apply key filtering
+                    if (!IsKeyAllowed(iKey))
+                        continue;
+
                     if (iKey < KEYBOARD_BUFFER_SIZE)
                     {
                         if ((m_KeyInBuffer[i].dwData & 0x80) != 0)
                         {
                             m_KeyboardState[iKey] |= KS_PRESSED;
                             m_KeyboardStamps[iKey] = m_KeyInBuffer[i].dwTimeStamp;
+                            TriggerEvent(1, iKey, m_KeyboardStamps[iKey]); // Key press trigger
                         }
                         else
                         {
                             m_KeyboardState[iKey] |= KS_RELEASED;
                             m_KeyboardStamps[iKey] = m_KeyInBuffer[i].dwTimeStamp - m_KeyboardStamps[iKey];
+                            TriggerEvent(5, iKey, m_KeyboardStamps[iKey]); // Key release trigger
                         }
                     }
                 }
@@ -466,7 +774,16 @@ CKERROR DX8InputManager::PostProcess()
     return CK_OK;
 }
 
-DX8InputManager::~DX8InputManager() {}
+DX8InputManager::~DX8InputManager()
+{
+    if (m_Filter.allowedKeys)
+        delete [] m_Filter.allowedKeys;
+
+    // Clear event callbacks
+    memset(m_EventCallbacks, 0, sizeof(m_EventCallbacks));
+    memset(m_CallbackUserData, 0, sizeof(m_CallbackUserData));
+    m_CallbackCount = 0;
+}
 
 DX8InputManager::DX8InputManager(CKContext *context) : CKInputManager(context, "DirectX Input Manager")
 {
@@ -483,6 +800,21 @@ DX8InputManager::DX8InputManager(CKContext *context) : CKInputManager(context, "
     m_Paused = FALSE;
     m_WasPaused = FALSE;
     m_EnableKeyboardRepetition = FALSE;
+
+    // Initialize input filter
+    memset(&m_Filter, 0, sizeof(m_Filter));
+    m_Filter.keyboardEnabled = TRUE;
+    m_Filter.mouseEnabled = TRUE;
+    m_Filter.joystickEnabled = TRUE;
+    m_Filter.allowedKeys = NULL;
+    m_Filter.allowedKeyCount = 0;
+
+    // Initialize event system
+    memset(m_EventCallbacks, 0, sizeof(m_EventCallbacks));
+    memset(m_CallbackUserData, 0, sizeof(m_CallbackUserData));
+    m_CallbackCount = 0;
+
+    m_MouseWheelPosition = 0;
 
     Initialize((HWND)m_Context->GetMainWindow());
 

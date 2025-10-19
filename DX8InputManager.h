@@ -9,6 +9,17 @@
 #define KEYBOARD_BUFFER_SIZE 256
 #define MOUSE_BUFFER_SIZE 256
 
+struct InputFilter
+{
+    CKBOOL keyboardEnabled;
+    CKBOOL mouseEnabled;
+    CKBOOL joystickEnabled;
+    CKDWORD *allowedKeys;
+    int allowedKeyCount;
+};
+
+typedef void (*InputEventCallback)(CKDWORD eventType, CKDWORD param1, CKDWORD param2, void *userData);
+
 class DX8InputManager : public CKInputManager
 {
 public:
@@ -134,6 +145,40 @@ public:
     virtual int GetJoystickCount();
     virtual IDirectInputDevice2 *GetJoystickDxInterface(int iJoystick);
 
+    // State setting methods
+    virtual void SetKeyDown(CKDWORD iKey);
+    virtual void SetKeyUp(CKDWORD iKey);
+    virtual void SetMouseButtonDown(CK_MOUSEBUTTON iButton);
+    virtual void SetMouseButtonUp(CK_MOUSEBUTTON iButton);
+    virtual void SetMousePosition(const Vx2DVector &position);
+    virtual void SetJoystickButtonDown(int iJoystick, int iButton);
+    virtual void SetJoystickButtonUp(int iJoystick, int iButton);
+    virtual void SetJoystickPosition(int iJoystick, const VxVector &position);
+
+    // Advanced state setting methods
+    virtual void SetKeyboardState(const CKBYTE *states, const int *stamps);
+    virtual void SetMouseState(const Vx2DVector &pos, const CKBYTE *buttons, const VxVector &delta);
+    virtual void SetJoystickCompleteState(int iJoystick, const VxVector &pos, const VxVector &rot, const Vx2DVector &sliders, CKDWORD buttons, CKDWORD pov);
+    virtual void SetMultipleKeys(const CKDWORD *keys, int count, CKBOOL pressed);
+    virtual void ClearAllInputState();
+
+    // Mouse wheel enhancements
+    virtual int GetMouseWheelDelta();
+    virtual int GetMouseWheelPosition();
+    virtual void SetMouseWheel(int wheelDelta);
+    virtual void SetMouseWheelPosition(int position);
+
+    // Input filtering methods
+    virtual void SetInputFilter(CKBOOL keyboard, CKBOOL mouse, CKBOOL joystick);
+    virtual void SetKeyFilter(const CKDWORD *allowedKeys, int count);
+    virtual void ClearInputFilters();
+    virtual CKBOOL IsInputFiltered(CKDWORD key);
+
+    // Event callback methods
+    virtual void RegisterEventCallback(InputEventCallback callback, void *userData);
+    virtual void UnregisterEventCallback(InputEventCallback callback);
+    virtual void TriggerEvent(CKDWORD eventType, CKDWORD param1, CKDWORD param2);
+
     // Internal functions
 
     virtual CKERROR OnCKInit();
@@ -185,8 +230,15 @@ protected:
     CKDWORD m_KeyboardRepeatInterval;
     CKBOOL m_ShowCursor;
 
+    InputFilter m_Filter;
+    InputEventCallback m_EventCallbacks[8];
+    void *m_CallbackUserData[8];
+    int m_CallbackCount;
+    int m_MouseWheelPosition;
+
 private:
     void EnsureCursorVisible(CKBOOL iShow);
+    CKBOOL IsKeyAllowed(CKDWORD key);
 };
 
 #endif // DX8INPUTMANAGER_H
