@@ -390,6 +390,10 @@ CKERROR DX8InputManager::PreProcess()
                 }
             }
 
+            // Keyboard repetition: generates synthetic key events for held keys
+            // Uses timestamp negation to track repetition state:
+            // - Positive timestamp: Initial press, waiting for repeat delay
+            // - Negative timestamp: Actively repeating at repeat interval
             if (m_EnableKeyboardRepetition)
             {
                 for (int i = 0; i < KEYBOARD_BUFFER_SIZE; i++)
