@@ -484,21 +484,39 @@ void DX8InputManager::Initialize(HWND hWnd)
     // Register with the DirectInput subsystem and get a pointer
     // to a IDirectInput interface we can use.
     // Create a DInput object
-    DirectInput8Create(::GetModuleHandle(TEXT("CK2.dll")), DIRECTINPUT_VERSION, IID_IDirectInput8, (void **)&m_DirectInput, NULL);
-    if (!m_DirectInput)
+    HRESULT hr = DirectInput8Create(::GetModuleHandle(TEXT("CK2.dll")), DIRECTINPUT_VERSION, IID_IDirectInput8, (void **)&m_DirectInput, NULL);
+    if (!m_DirectInput || FAILED(hr))
     {
-        ::OutputDebugString(TEXT("Cannot create, DirectInput Version 8"));
-        ::MessageBox(hWnd, TEXT("Initialization Error"), TEXT("Cannot Initialize Input Manager"), MB_OK);
+        TCHAR msg[256];
+        snprintf(msg, 256, TEXT("DX8InputManager: DirectInput8Create failed (HRESULT: 0x%08X)"), hr);
+        ::OutputDebugString(msg);
+        ::MessageBox(hWnd, TEXT("Cannot Initialize Input Manager"), TEXT("Initialization Error"), MB_OK);
+        // Note: Continues execution to allow graceful degradation - methods check device availability
     }
 
     // Obtain an interface to the system keyboard device.
-    m_DirectInput->CreateDevice(GUID_SysKeyboard, &m_Keyboard, NULL);
+    if (m_DirectInput)
+    {
+        hr = m_DirectInput->CreateDevice(GUID_SysKeyboard, &m_Keyboard, NULL);
+        if (FAILED(hr))
+        {
+            TCHAR msg[256];
+            snprintf(msg, 256, TEXT("DX8InputManager: CreateDevice for keyboard failed (HRESULT: 0x%08X)"), hr);
+            ::OutputDebugString(msg);
+        }
 
-    // Obtain an interface to the system mouse device.
-    m_DirectInput->CreateDevice(GUID_SysMouse, &m_Mouse.m_Device, NULL);
+        // Obtain an interface to the system mouse device.
+        hr = m_DirectInput->CreateDevice(GUID_SysMouse, &m_Mouse.m_Device, NULL);
+        if (FAILED(hr))
+        {
+            TCHAR msg[256];
+            snprintf(msg, 256, TEXT("DX8InputManager: CreateDevice for mouse failed (HRESULT: 0x%08X)"), hr);
+            ::OutputDebugString(msg);
+        }
 
-    // Look for some joysticks we can use.
-    m_DirectInput->EnumDevices(DI8DEVCLASS_GAMECTRL, JoystickEnum, this, DIEDFL_ATTACHEDONLY);
+        // Look for some joysticks we can use.
+        m_DirectInput->EnumDevices(DI8DEVCLASS_GAMECTRL, JoystickEnum, this, DIEDFL_ATTACHEDONLY);
+    }
 
     if (m_Keyboard)
     {
