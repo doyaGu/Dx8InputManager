@@ -69,7 +69,7 @@ void DX8InputManager::CKJoystick::Poll()
         if (fabs(slider[1]) < 0.01) slider[1] = 0.0;
         m_Sliders.Set((float)slider[0], (float)slider[1]);
 
-        m_PointOfViewAngle = (state.rgdwPOV[0] != 0xFFFF) ? state.rgdwPOV[0] : -1;
+        m_PointOfViewAngle = (state.rgdwPOV[0] != (DWORD)-1) ? state.rgdwPOV[0] : -1;
 
         m_Buttons = 0;
         for (int i = 0; i < 32; i++)
