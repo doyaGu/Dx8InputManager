@@ -182,7 +182,9 @@ void DX8InputManager::GetJoystickPointOfViewAngle(int iJoystick, float *oAngle)
     {
         CKJoystick *joystick = &m_Joysticks[iJoystick];
         joystick->Poll();
-        *oAngle = (float)(joystick->m_PointOfViewAngle * 3.1415927 * 0.000055555556);
+        *oAngle = (joystick->m_PointOfViewAngle == -1)
+                      ? -1.0f
+                      : (float)(joystick->m_PointOfViewAngle * PI * 0.000055555556);
     }
 }
 
@@ -273,12 +275,51 @@ int DX8InputManager::GetJoystickCount()
     return m_JoystickCount;
 }
 
-IDirectInputDevice2 *DX8InputManager::GetJoystickDxInterface(int iJoystick)
+IDirectInputDevice8 *DX8InputManager::GetJoystickDxInterface(int iJoystick)
 {
     if (iJoystick < 0 || iJoystick >= m_JoystickCount)
         return NULL;
     else
-        return m_Joysticks[iJoystick].m_Device;
+        return m_Joysticks[iJoystick].m_Device;  // Returns NULL for XInput devices, which is correct
+}
+
+void DX8InputManager::SetJoystickDeadzone(int iJoystick, float radius)
+{
+    if (iJoystick >= 0 && iJoystick < m_JoystickCount)
+    {
+        // Clamp deadzone radius to valid range [0.0, 1.0]
+        if (radius < 0.0f) radius = 0.0f;
+        if (radius > 1.0f) radius = 1.0f;
+        m_Joysticks[iJoystick].m_DeadzoneRadius = radius;
+    }
+}
+
+float DX8InputManager::GetJoystickDeadzone(int iJoystick)
+{
+    if (iJoystick >= 0 && iJoystick < m_JoystickCount)
+        return m_Joysticks[iJoystick].m_DeadzoneRadius;
+    return 0.01f;  // Default deadzone
+}
+
+void DX8InputManager::SetMaxJoysticks(int maxJoysticks)
+{
+    // Can only change before initialization
+    if (m_Joysticks != NULL)
+    {
+        ::OutputDebugString(TEXT("DX8InputManager: Cannot change max joysticks after initialization"));
+        return;
+    }
+
+    // Clamp to reasonable range (1-16)
+    if (maxJoysticks < 1) maxJoysticks = 1;
+    if (maxJoysticks > 16) maxJoysticks = 16;
+
+    m_MaxJoysticks = maxJoysticks;
+}
+
+int DX8InputManager::GetMaxJoysticks()
+{
+    return m_MaxJoysticks;
 }
 
 void DX8InputManager::SetKeyDown(CKDWORD iKey)
@@ -376,7 +417,7 @@ void DX8InputManager::SetJoystickCompleteState(int iJoystick, const VxVector &po
         m_Joysticks[iJoystick].m_Rotation = rot;
         m_Joysticks[iJoystick].m_Sliders = sliders;
         m_Joysticks[iJoystick].m_Buttons = buttons;
-        m_Joysticks[iJoystick].m_PointOfViewAngle = pov;
+        m_Joysticks[iJoystick].m_PointOfViewAngle = (pov == 0xFFFFFFFF) ? -1 : (LONG)pov;
         m_Joysticks[iJoystick].m_Polled = TRUE;
     }
 }
@@ -751,6 +792,9 @@ CKERROR DX8InputManager::PreProcess()
 
     m_Mouse.Poll(m_Paused);
 
+    // Check for hot-plugged controller changes (every ~1 second)
+    CheckForDeviceChanges();
+
     for (int i = 0; i < m_JoystickCount; i++)
         m_Joysticks[i].m_Polled = FALSE;
 
@@ -779,6 +823,10 @@ DX8InputManager::~DX8InputManager()
     if (m_Filter.allowedKeys)
         delete [] m_Filter.allowedKeys;
 
+    // Free dynamically allocated joystick array
+    if (m_Joysticks)
+        delete[] m_Joysticks;
+
     // Clear event callbacks
     memset(m_EventCallbacks, 0, sizeof(m_EventCallbacks));
     memset(m_CallbackUserData, 0, sizeof(m_CallbackUserData));
@@ -789,7 +837,9 @@ DX8InputManager::DX8InputManager(CKContext *context) : CKInputManager(context, "
 {
     m_DirectInput = NULL;
     m_Keyboard = NULL;
+    m_Joysticks = NULL;
     m_JoystickCount = 0;
+    m_MaxJoysticks = 4;
 
     int keyboardDelay;
     DWORD keyboardSpeed;
@@ -816,6 +866,12 @@ DX8InputManager::DX8InputManager(CKContext *context) : CKInputManager(context, "
 
     m_MouseWheelPosition = 0;
 
+    // Initialize hot-plug detection
+    m_LastDeviceCheckTime = ::GetTickCount();
+    m_DeviceCheckInterval = 1000;  // Check for device changes every 1 second
+    memset(m_DeviceGUIDs, 0, sizeof(m_DeviceGUIDs));
+    memset(m_XInputStates, 0, sizeof(m_XInputStates));
+
     Initialize((HWND)m_Context->GetMainWindow());
 
     memset(m_KeyboardState, 0, sizeof(m_KeyboardState));
@@ -829,6 +885,17 @@ DX8InputManager::DX8InputManager(CKContext *context) : CKInputManager(context, "
 
 void DX8InputManager::Initialize(HWND hWnd)
 {
+    // Allocate joystick array dynamically
+    if (m_Joysticks == NULL)
+    {
+        m_Joysticks = new CKJoystick[m_MaxJoysticks];
+        if (!m_Joysticks)
+        {
+            ::OutputDebugString(TEXT("DX8InputManager: Failed to allocate joystick array"));
+            m_MaxJoysticks = 0;
+        }
+    }
+
     // Register with the DirectInput subsystem and get a pointer
     // to a IDirectInput interface we can use.
     // Create a DInput object
@@ -841,6 +908,9 @@ void DX8InputManager::Initialize(HWND hWnd)
         ::MessageBox(hWnd, TEXT("Cannot Initialize Input Manager"), TEXT("Initialization Error"), MB_OK);
         // Note: Continues execution to allow graceful degradation - methods check device availability
     }
+
+    // Load XInput dynamically (optional, used for Xbox controllers)
+    CKJoystick::LoadXInput();
 
     // Obtain an interface to the system keyboard device.
     if (m_DirectInput)
@@ -864,6 +934,25 @@ void DX8InputManager::Initialize(HWND hWnd)
 
         // Look for some joysticks we can use.
         m_DirectInput->EnumDevices(DI8DEVCLASS_GAMECTRL, JoystickEnum, this, DIEDFL_ATTACHEDONLY);
+
+        // After DirectInput enumeration, check for XInput devices (Xbox controllers)
+        // XInput supports up to 4 controllers (indices 0-3)
+        // Only enumerate XInput devices if the library was successfully loaded
+        if (CKJoystick::IsXInputAvailable())
+        {
+            for (DWORD userIndex = 0; userIndex < XUSER_MAX_COUNT && m_JoystickCount < m_MaxJoysticks; userIndex++)
+            {
+                XINPUT_STATE state;
+                if (CKJoystick::s_XInputGetState(userIndex, &state) == ERROR_SUCCESS)
+                {
+                    // XInput controller found, add it to the joystick list
+                    m_Joysticks[m_JoystickCount].m_XInputUserIndex = userIndex;
+                    m_XInputStates[userIndex] = 1;  // Mark as connected to prevent false connection event
+                    m_JoystickCount++;
+                    ::OutputDebugString(TEXT("DX8InputManager: XInput controller detected"));
+                }
+            }
+        }
     }
 
     if (m_Keyboard)
@@ -919,6 +1008,9 @@ void DX8InputManager::Uninitialize()
         m_DirectInput->Release();
         m_DirectInput = NULL;
     }
+
+    // Unload XInput library (static, so only unload once)
+    CKJoystick::UnloadXInput();
 }
 
 void DX8InputManager::ClearBuffers()
@@ -939,4 +1031,142 @@ void DX8InputManager::ClearBuffers()
     }
     m_Mouse.Clear();
     memset(m_KeyboardState, 0, sizeof(m_KeyboardState));
+}
+
+void DX8InputManager::CheckForDeviceChanges()
+{
+    // Check if enough time has passed since last check
+    DWORD currentTime = ::GetTickCount();
+    if (currentTime - m_LastDeviceCheckTime < m_DeviceCheckInterval)
+        return;
+
+    m_LastDeviceCheckTime = currentTime;
+
+    if (!m_DirectInput)
+        return;
+
+    // Save current device states for comparison
+    GUID oldDeviceGUIDs[16];
+    DWORD oldXInputStates[XUSER_MAX_COUNT];
+    int oldJoystickCount = m_JoystickCount;
+
+    memcpy(oldDeviceGUIDs, m_DeviceGUIDs, sizeof(oldDeviceGUIDs));
+    memcpy(oldXInputStates, m_XInputStates, sizeof(oldXInputStates));
+
+    // Build current device state snapshot
+    memset(m_DeviceGUIDs, 0, sizeof(m_DeviceGUIDs));
+    for (int i = 0; i < m_JoystickCount && i < 16; i++)
+    {
+        m_DeviceGUIDs[i] = m_Joysticks[i].m_DeviceGUID;
+    }
+
+    // Check XInput devices (only if XInput is available)
+    if (CKJoystick::IsXInputAvailable())
+    {
+        for (DWORD userIndex = 0; userIndex < XUSER_MAX_COUNT; userIndex++)
+        {
+            XINPUT_STATE state;
+            m_XInputStates[userIndex] = (CKJoystick::s_XInputGetState(userIndex, &state) == ERROR_SUCCESS) ? 1 : 0;
+        }
+    }
+    else
+    {
+        // XInput not available, ensure all states are disconnected
+        memset(m_XInputStates, 0, sizeof(m_XInputStates));
+    }
+
+    // Detect disconnected DirectInput devices
+    for (int i = 0; i < oldJoystickCount; i++)
+    {
+        if (m_Joysticks[i].m_Device)
+        {
+            // Try to poll the device to check if it's still connected
+            HRESULT hr = m_Joysticks[i].m_Device->Poll();
+            if (FAILED(hr))
+            {
+                hr = m_Joysticks[i].m_Device->Acquire();
+                if (FAILED(hr))
+                {
+                    // Device is no longer available
+                    ::OutputDebugString(TEXT("DX8InputManager: DirectInput device disconnected"));
+                    m_Joysticks[i].Release();
+
+                    // Compact the joystick array to remove the gap using safe transfer
+                    for (int j = i; j < m_JoystickCount - 1; j++)
+                    {
+                        m_Joysticks[j].TransferFrom(m_Joysticks[j + 1]);
+                    }
+                    m_JoystickCount--;
+
+                    // Trigger event AFTER array compaction so index is correct
+                    TriggerEvent(7, i, 0);  // Event type 7 = joystick disconnected
+
+                    i--;  // Recheck this index since we shifted the array
+                }
+            }
+        }
+    }
+
+    // Detect XInput device changes
+    for (DWORD userIndex = 0; userIndex < XUSER_MAX_COUNT; userIndex++)
+    {
+        if (m_XInputStates[userIndex] != oldXInputStates[userIndex])
+        {
+            if (m_XInputStates[userIndex] == 1)
+            {
+                // XInput device connected
+                if (m_JoystickCount < m_MaxJoysticks)
+                {
+                    // Find the joystick with this XInput index or add new one
+                    CKBOOL found = FALSE;
+                    for (int i = 0; i < m_JoystickCount; i++)
+                    {
+                        if (m_Joysticks[i].m_XInputUserIndex == userIndex)
+                        {
+                            found = TRUE;
+                            break;
+                        }
+                    }
+
+                    if (!found)
+                    {
+                        ::OutputDebugString(TEXT("DX8InputManager: XInput controller connected"));
+                        m_Joysticks[m_JoystickCount].m_XInputUserIndex = userIndex;
+                        HWND hWnd = (HWND)m_Context->GetMainWindow();
+                        m_Joysticks[m_JoystickCount].Init(hWnd);
+                        TriggerEvent(6, m_JoystickCount, userIndex);  // Event type 6 = joystick connected
+                        m_JoystickCount++;
+                    }
+                }
+            }
+            else
+            {
+                // XInput device disconnected
+                for (int i = 0; i < m_JoystickCount; i++)
+                {
+                    if (m_Joysticks[i].m_XInputUserIndex == userIndex)
+                    {
+                        ::OutputDebugString(TEXT("DX8InputManager: XInput controller disconnected"));
+                        m_Joysticks[i].m_XInputUserIndex = (DWORD)-1;
+
+                        // Compact the joystick array using safe transfer
+                        for (int j = i; j < m_JoystickCount - 1; j++)
+                        {
+                            m_Joysticks[j].TransferFrom(m_Joysticks[j + 1]);
+                        }
+                        m_JoystickCount--;
+
+                        // Trigger event AFTER array compaction so index is correct
+                        TriggerEvent(7, i, userIndex);  // Event type 7 = joystick disconnected
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // Check for newly attached DirectInput devices
+    // Note: We don't re-enumerate all devices every time as it's expensive
+    // Instead, we only check for disconnections above. Full re-enumeration
+    // can be added if needed, but it requires tracking more state
 }
