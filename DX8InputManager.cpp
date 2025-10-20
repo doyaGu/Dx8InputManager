@@ -748,21 +748,48 @@ void DX8InputManager::SetJoystickState(int iJoystick, const VxVector &pos, const
     }
 }
 
-void DX8InputManager::ClearAllInputState()
+void DX8InputManager::ClearKeyboardState()
 {
     memset(m_KeyboardState, 0, sizeof(m_KeyboardState));
     memset(m_KeyboardStamps, 0, sizeof(m_KeyboardStamps));
+}
+
+void DX8InputManager::ClearMouseState()
+{
     memset(m_Mouse.m_State.rgbButtons, 0, sizeof(m_Mouse.m_State.rgbButtons));
     memset(m_Mouse.m_LastButtons, 0, sizeof(m_Mouse.m_LastButtons));
+}
 
-    for (int i = 0; i < m_JoystickCount; i++)
+void DX8InputManager::ClearJoystickState(int joystickIndex)
+{
+    if (joystickIndex >= 0 && joystickIndex < m_JoystickCount)
     {
-        m_Joysticks[i].m_Buttons = 0;
-        m_Joysticks[i].m_Position.Set(0, 0, 0);
-        m_Joysticks[i].m_Rotation.Set(0, 0, 0);
-        m_Joysticks[i].m_Sliders.Set(0, 0);
-        m_Joysticks[i].m_PointOfViewAngle = -1;
+        // Clear specific joystick
+        m_Joysticks[joystickIndex].m_Buttons = 0;
+        m_Joysticks[joystickIndex].m_Position.Set(0, 0, 0);
+        m_Joysticks[joystickIndex].m_Rotation.Set(0, 0, 0);
+        m_Joysticks[joystickIndex].m_Sliders.Set(0, 0);
+        m_Joysticks[joystickIndex].m_PointOfViewAngle = -1;
     }
+    else
+    {
+        // Clear all joysticks
+        for (int i = 0; i < m_JoystickCount; i++)
+        {
+            m_Joysticks[i].m_Buttons = 0;
+            m_Joysticks[i].m_Position.Set(0, 0, 0);
+            m_Joysticks[i].m_Rotation.Set(0, 0, 0);
+            m_Joysticks[i].m_Sliders.Set(0, 0);
+            m_Joysticks[i].m_PointOfViewAngle = -1;
+        }
+    }
+}
+
+void DX8InputManager::ClearInputState()
+{
+    ClearKeyboardState();
+    ClearMouseState();
+    ClearJoystickState();
 }
 
 CKERROR DX8InputManager::OnCKInit()

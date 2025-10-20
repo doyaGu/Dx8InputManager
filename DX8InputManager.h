@@ -214,7 +214,10 @@ public:
     virtual void SetKeyboardState(const CKBYTE *states, const int *stamps);
     virtual void SetMouseState(const Vx2DVector &pos, const CKBYTE *buttons, const VxVector &delta);
     virtual void SetJoystickState(int iJoystick, const VxVector &pos, const VxVector &rot, const Vx2DVector &sliders, CKDWORD buttons, CKDWORD pov);
-    virtual void ClearAllInputState();
+    virtual void ClearKeyboardState();
+    virtual void ClearMouseState();
+    virtual void ClearJoystickState(int joystickIndex = -1);
+    virtual void ClearInputState();
 
     // Internal functions
 
