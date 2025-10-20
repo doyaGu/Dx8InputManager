@@ -711,7 +711,7 @@ void DX8InputManager::SetMouseState(const Vx2DVector &pos, const CKBYTE *buttons
     m_Mouse.m_State.lZ = (long)delta.z;
 }
 
-void DX8InputManager::SetJoystickCompleteState(int iJoystick, const VxVector &pos, const VxVector &rot, const Vx2DVector &sliders, CKDWORD buttons, CKDWORD pov)
+void DX8InputManager::SetJoystickState(int iJoystick, const VxVector &pos, const VxVector &rot, const Vx2DVector &sliders, CKDWORD buttons, CKDWORD pov)
 {
     if (iJoystick >= 0 && iJoystick < m_JoystickCount)
     {
