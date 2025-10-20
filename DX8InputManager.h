@@ -181,8 +181,8 @@ public:
     virtual float GetJoystickGain(int iJoystick);            // Get current sensitivity gain
     virtual void SetJoystickGain(int iJoystick, float gain); // Set sensitivity gain (0.0 to 2.0, default 1.0)
 
-    virtual CKBOOL GetJoystickAxisRange(int iJoystick, CK_JOYSTICK_AXIS axis, LONG *min, LONG *max); // Query axis range
-    virtual CKBOOL SetJoystickAxisRange(int iJoystick, CK_JOYSTICK_AXIS axis, LONG min, LONG max);   // Set custom axis range
+    virtual CKBOOL GetJoystickAxisRange(int iJoystick, CK_JOYSTICK_AXIS axis, CKDWORD *min, CKDWORD *max); // Query axis range
+    virtual CKBOOL SetJoystickAxisRange(int iJoystick, CK_JOYSTICK_AXIS axis, CKDWORD min, CKDWORD max);   // Set custom axis range
     virtual CKBOOL ResetJoystickAxisRanges(int iJoystick);                                           // Reset all axes to device defaults
 
     // Keyboard repeat configuration methods
