@@ -765,80 +765,6 @@ void DX8InputManager::ClearAllInputState()
     }
 }
 
-CKBOOL DX8InputManager::IsKeyAllowed(CKDWORD key)
-{
-    if (!m_Filter.keyboardEnabled)
-        return FALSE;
-
-    // If allowlist is set, check if key is in the list
-    if (m_Filter.allowedKeys && m_Filter.allowedKeyCount > 0)
-    {
-        for (int i = 0; i < m_Filter.allowedKeyCount; i++)
-        {
-            if (m_Filter.allowedKeys[i] == key)
-                return TRUE;
-        }
-        return FALSE;
-    }
-
-    // No filter set - all keys allowed
-    return TRUE;
-}
-
-// Input filtering methods
-void DX8InputManager::SetInputFilter(CKBOOL keyboard, CKBOOL mouse, CKBOOL joystick)
-{
-    m_Filter.keyboardEnabled = keyboard;
-    m_Filter.mouseEnabled = mouse;
-    m_Filter.joystickEnabled = joystick;
-}
-
-void DX8InputManager::SetKeyFilter(const CKDWORD *allowedKeys, int count)
-{
-    if (m_Filter.allowedKeys)
-        delete[] m_Filter.allowedKeys;
-
-    if (allowedKeys && count > 0)
-    {
-        m_Filter.allowedKeys = new CKDWORD[count];
-        if (m_Filter.allowedKeys)
-        {
-            memcpy(m_Filter.allowedKeys, allowedKeys, count * sizeof(CKDWORD));
-            m_Filter.allowedKeyCount = count;
-        }
-        else
-        {
-            // Memory allocation failed
-            ::OutputDebugString(TEXT("DX8InputManager: Failed to allocate memory for key filter"));
-            m_Filter.allowedKeyCount = 0;
-        }
-    }
-    else
-    {
-        m_Filter.allowedKeys = NULL;
-        m_Filter.allowedKeyCount = 0;
-    }
-}
-
-void DX8InputManager::ClearInputFilters()
-{
-    m_Filter.keyboardEnabled = TRUE;
-    m_Filter.mouseEnabled = TRUE;
-    m_Filter.joystickEnabled = TRUE;
-
-    if (m_Filter.allowedKeys)
-    {
-        delete[] m_Filter.allowedKeys;
-        m_Filter.allowedKeys = NULL;
-    }
-    m_Filter.allowedKeyCount = 0;
-}
-
-CKBOOL DX8InputManager::IsInputFiltered(CKDWORD key)
-{
-    return IsKeyAllowed(key);
-}
-
 CKERROR DX8InputManager::OnCKInit()
 {
     if (!m_Keyboard)
@@ -935,11 +861,6 @@ CKERROR DX8InputManager::PreProcess()
                 for (int i = 0; i < m_NumberOfKeyInBuffer; i++)
                 {
                     iKey = m_KeyInBuffer[i].dwOfs;
-
-                    // Apply key filtering
-                    if (!IsKeyAllowed(iKey))
-                        continue;
-
                     if (iKey < KEYBOARD_BUFFER_SIZE)
                     {
                         if ((m_KeyInBuffer[i].dwData & 0x80) != 0)
@@ -1033,9 +954,6 @@ CKERROR DX8InputManager::PostProcess()
 
 DX8InputManager::~DX8InputManager()
 {
-    if (m_Filter.allowedKeys)
-        delete[] m_Filter.allowedKeys;
-
     // Free dynamically allocated joystick array
     if (m_Joysticks)
         delete[] m_Joysticks;
@@ -1058,15 +976,6 @@ DX8InputManager::DX8InputManager(CKContext *context) : CKInputManager(context, "
     m_Paused = FALSE;
     m_WasPaused = FALSE;
     m_EnableKeyboardRepetition = FALSE;
-
-    // Initialize input filter
-    memset(&m_Filter, 0, sizeof(m_Filter));
-    m_Filter.keyboardEnabled = TRUE;
-    m_Filter.mouseEnabled = TRUE;
-    m_Filter.joystickEnabled = TRUE;
-    m_Filter.allowedKeys = NULL;
-    m_Filter.allowedKeyCount = 0;
-
     m_MouseWheelPosition = 0;
 
     Initialize((HWND)m_Context->GetMainWindow());

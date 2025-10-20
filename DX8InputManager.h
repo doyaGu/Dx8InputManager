@@ -9,15 +9,6 @@
 #define KEYBOARD_BUFFER_SIZE 256
 #define MOUSE_BUFFER_SIZE 256
 
-struct InputFilter
-{
-    CKBOOL keyboardEnabled;
-    CKBOOL mouseEnabled;
-    CKBOOL joystickEnabled;
-    CKDWORD *allowedKeys;
-    int allowedKeyCount;
-};
-
 // Joystick axis enumeration for configuration methods
 enum CK_JOYSTICK_AXIS
 {
@@ -225,12 +216,6 @@ public:
     virtual void SetMultipleKeys(const CKDWORD *keys, int count, CKBOOL pressed);
     virtual void ClearAllInputState();
 
-    // Input filtering methods
-    virtual void SetInputFilter(CKBOOL keyboard, CKBOOL mouse, CKBOOL joystick);
-    virtual void SetKeyFilter(const CKDWORD *allowedKeys, int count);
-    virtual void ClearInputFilters();
-    virtual CKBOOL IsInputFiltered(CKDWORD key);
-
     // Internal functions
 
     virtual CKERROR OnCKInit();
@@ -282,13 +267,10 @@ protected:
     CKDWORD m_KeyboardRepeatDelay;
     CKDWORD m_KeyboardRepeatInterval;
     CKBOOL m_ShowCursor;
-
-    InputFilter m_Filter;
     int m_MouseWheelPosition;
 
 private:
     void EnsureCursorVisible(CKBOOL iShow);
-    CKBOOL IsKeyAllowed(CKDWORD key);
 };
 
 #endif // DX8INPUTMANAGER_H
