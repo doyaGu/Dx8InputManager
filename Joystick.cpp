@@ -1,11 +1,5 @@
 #include "DX8InputManager.h"
 
-// Initialize static XInput members
-HMODULE DX8InputManager::CKJoystick::s_XInputDLL = NULL;
-PFN_XInputGetState DX8InputManager::CKJoystick::s_XInputGetState = NULL;
-PFN_XInputSetState DX8InputManager::CKJoystick::s_XInputSetState = NULL;
-PFN_XInputGetCapabilities DX8InputManager::CKJoystick::s_XInputGetCapabilities = NULL;
-
 static double NormalizeAxis(LONG value, LONG minValue, LONG maxValue)
 {
     if (maxValue == minValue)
@@ -25,68 +19,24 @@ static double NormalizeAxis(LONG value, LONG minValue, LONG maxValue)
     return normalized;
 }
 
-void DX8InputManager::CKJoystick::LoadXInput()
+static float ClampAxis(float value)
 {
-    if (s_XInputDLL)
-        return;  // Already loaded
-
-    // Dynamically load XInput library (try multiple versions for compatibility)
-    const char* xinput_dll_names[] = {
-        "xinput1_4.dll",   // Windows 8+
-        "xinput1_3.dll",   // DirectX SDK / Windows 7
-        "xinput9_1_0.dll", // Windows Vista, Windows 7
-        "xinput1_2.dll",   // DirectX SDK (older)
-        "xinput1_1.dll"    // DirectX SDK (oldest)
-    };
-    for (int n = 0; n < 5; n++)
-    {
-        HMODULE dll = ::LoadLibraryA(xinput_dll_names[n]);
-        if (dll)
-        {
-            s_XInputDLL = dll;
-            s_XInputGetState = (PFN_XInputGetState)::GetProcAddress(dll, "XInputGetState");
-            s_XInputSetState = (PFN_XInputSetState)::GetProcAddress(dll, "XInputSetState");
-            s_XInputGetCapabilities = (PFN_XInputGetCapabilities)::GetProcAddress(dll, "XInputGetCapabilities");
-
-            if (s_XInputGetState)
-            {
-                TCHAR msg[256];
-                snprintf(msg, 256, TEXT("CKJoystick: Loaded %s successfully"), xinput_dll_names[n]);
-                ::OutputDebugString(msg);
-                break;
-            }
-            else
-            {
-                ::FreeLibrary(dll);
-                s_XInputDLL = NULL;
-            }
-        }
-    }
-
-    if (!s_XInputDLL)
-    {
-        ::OutputDebugString(TEXT("CKJoystick: XInput not available (optional, DirectInput devices will still work)"));
-    }
-}
-
-void DX8InputManager::CKJoystick::UnloadXInput()
-{
-    if (s_XInputDLL)
-    {
-        ::FreeLibrary(s_XInputDLL);
-        s_XInputDLL = NULL;
-        s_XInputGetState = NULL;
-        s_XInputSetState = NULL;
-        s_XInputGetCapabilities = NULL;
-    }
+    if (value > 1.0f)
+        return 1.0f;
+    if (value < -1.0f)
+        return -1.0f;
+    return value;
 }
 
 DX8InputManager::CKJoystick::CKJoystick()
 {
     m_Device = NULL;
-    memset(&m_DeviceGUID, 0, sizeof(GUID));  // Initialize to empty GUID
-    m_XInputUserIndex = (DWORD)-1;  // Not an XInput device by default
-    m_DeadzoneRadius = 0.01f;       // Default 1% deadzone
+    memset(&m_DeviceGUID, 0, sizeof(GUID));        // Initialize to empty GUID
+    memset(m_DeviceName, 0, sizeof(m_DeviceName)); // Initialize device name to empty
+    // Default 1% deadzone for all devices
+    m_DeadzoneRadius = 0.01f;
+    m_Gain = 1.0f;     // Default gain (no scaling)
+    m_ButtonCount = 0; // Will be set during initialization
     m_Polled = FALSE;
     m_Position.Set(0.0f, 0.0f, 0.0f);
     m_Rotation.Set(0.0f, 0.0f, 0.0f);
@@ -124,9 +74,20 @@ void DX8InputManager::CKJoystick::Release()
     }
 }
 
+void DX8InputManager::CKJoystick::ResetState()
+{
+    m_Position.Set(0.0f, 0.0f, 0.0f);
+    m_Rotation.Set(0.0f, 0.0f, 0.0f);
+    m_Sliders.Set(0.0f, 0.0f);
+    m_PointOfViewAngle = -1;
+    m_Buttons = 0;
+    m_Polled = TRUE;
+}
+
 void DX8InputManager::CKJoystick::Poll()
 {
-    if (m_Polled) return;
+    if (m_Polled)
+        return;
 
     if (m_Device)
     {
@@ -135,10 +96,16 @@ void DX8InputManager::CKJoystick::Poll()
         {
             hr = m_Device->Acquire();
             if (FAILED(hr))
+            {
+                ResetState();
                 return;
+            }
             hr = m_Device->Poll();
             if (FAILED(hr))
+            {
+                ResetState();
                 return;
+            }
         }
 
         DIJOYSTATE2 state;
@@ -148,11 +115,17 @@ void DX8InputManager::CKJoystick::Poll()
         {
             hr = m_Device->Acquire();
             if (FAILED(hr))
+            {
+                ResetState();
                 return;
+            }
             hr = m_Device->GetDeviceState(sizeof(DIJOYSTATE2), &state);
         }
         if (FAILED(hr))
+        {
+            ResetState();
             return;
+        }
 
         double x = m_AxisCaps.hasX ? NormalizeAxis(state.lX, m_Xmin, m_Xmax) : 0.0;
         double y = m_AxisCaps.hasY ? NormalizeAxis(state.lY, m_Ymin, m_Ymax) : 0.0;
@@ -174,7 +147,9 @@ void DX8InputManager::CKJoystick::Poll()
         if (fabs(z) < deadzone)
             z = 0.0;
 
-        m_Position.Set((float)x, (float)y, (float)z);
+        // Apply gain/sensitivity multiplier and clamp to [-1.0, 1.0]
+        const double gain = static_cast<double>(m_Gain);
+        m_Position.Set(ClampAxis((float)(x * gain)), ClampAxis((float)(y * gain)), ClampAxis((float)(z * gain)));
 
         double xr = m_AxisCaps.hasRx ? NormalizeAxis(state.lRx, m_XRmin, m_XRmax) : 0.0;
         double yr = m_AxisCaps.hasRy ? NormalizeAxis(state.lRy, m_YRmin, m_YRmax) : 0.0;
@@ -195,15 +170,16 @@ void DX8InputManager::CKJoystick::Poll()
         if (fabs(zr) < deadzone)
             zr = 0.0;
 
-        m_Rotation.Set((float)xr, (float)yr, (float)zr);
+        // Apply gain/sensitivity multiplier and clamp to [-1.0, 1.0]
+        m_Rotation.Set(ClampAxis((float)(xr * gain)), ClampAxis((float)(yr * gain)), ClampAxis((float)(zr * gain)));
 
         double slider0 = m_AxisCaps.hasSlider0 ? NormalizeAxis(state.rglSlider[0], m_Umin, m_Umax) : 0.0;
         double slider1 = m_AxisCaps.hasSlider1 ? NormalizeAxis(state.rglSlider[1], m_Vmin, m_Vmax) : 0.0;
-        if (fabs(slider0) < 0.01)
+        if (fabs(slider0) < deadzone)
             slider0 = 0.0;
-        if (fabs(slider1) < 0.01)
+        if (fabs(slider1) < deadzone)
             slider1 = 0.0;
-        m_Sliders.Set((float)slider0, (float)slider1);
+        m_Sliders.Set(ClampAxis((float)(slider0 * gain)), ClampAxis((float)(slider1 * gain)));
 
         m_PointOfViewAngle = (state.rgdwPOV[0] != 0xFFFF) ? static_cast<CKDWORD>(state.rgdwPOV[0]) : -1;
 
@@ -216,73 +192,16 @@ void DX8InputManager::CKJoystick::Poll()
 
         m_Polled = TRUE;
     }
-    else if (s_XInputGetState && m_XInputUserIndex != (DWORD)-1)
+    else
     {
-        // Poll XInput device (only if XInput is loaded)
-        XINPUT_STATE xstate;
-        DWORD result = s_XInputGetState(m_XInputUserIndex, &xstate);
-
-        if (result == ERROR_SUCCESS)
-        {
-            // Map Xbox controller to joystick interface
-            // Left stick -> Position X,Y
-            // Right stick -> Rotation X,Y
-            // Triggers -> Position Z (combined)
-
-            // Normalize stick values from [-32768, 32767] to [-1.0, 1.0]
-            float leftX = xstate.Gamepad.sThumbLX / 32768.0f;
-            float leftY = xstate.Gamepad.sThumbLY / 32768.0f;
-            float rightX = xstate.Gamepad.sThumbRX / 32768.0f;
-            float rightY = xstate.Gamepad.sThumbRY / 32768.0f;
-
-            // Apply deadzones (Xbox default is ~7849, which is about 0.24)
-            if (fabs(leftX) < 0.24f) leftX = 0.0f;
-            if (fabs(leftY) < 0.24f) leftY = 0.0f;
-            if (fabs(rightX) < 0.24f) rightX = 0.0f;
-            if (fabs(rightY) < 0.24f) rightY = 0.0f;
-
-            // Combine triggers into Z axis (normalized from [0, 255] to [-1.0, 1.0])
-            float triggerZ = (xstate.Gamepad.bRightTrigger - xstate.Gamepad.bLeftTrigger) / 255.0f;
-
-            m_Position.Set(leftX, leftY, triggerZ);
-            m_Rotation.Set(rightX, rightY, 0.0f);
-
-            // No sliders on Xbox controller
-            m_Sliders.Set(0.0f, 0.0f);
-
-            // Map DPad to POV (0 = up, 9000 = right, 18000 = down, 27000 = left)
-            WORD dpad = xstate.Gamepad.wButtons & 0x000F;  // DPad is first 4 bits
-            if (dpad == 0)
-                m_PointOfViewAngle = -1;  // Centered
-            else if (dpad == XINPUT_GAMEPAD_DPAD_UP)
-                m_PointOfViewAngle = 0;
-            else if ((dpad & (XINPUT_GAMEPAD_DPAD_UP | XINPUT_GAMEPAD_DPAD_RIGHT)) == (XINPUT_GAMEPAD_DPAD_UP | XINPUT_GAMEPAD_DPAD_RIGHT))
-                m_PointOfViewAngle = 4500;
-            else if (dpad == XINPUT_GAMEPAD_DPAD_RIGHT)
-                m_PointOfViewAngle = 9000;
-            else if ((dpad & (XINPUT_GAMEPAD_DPAD_DOWN | XINPUT_GAMEPAD_DPAD_RIGHT)) == (XINPUT_GAMEPAD_DPAD_DOWN | XINPUT_GAMEPAD_DPAD_RIGHT))
-                m_PointOfViewAngle = 13500;
-            else if (dpad == XINPUT_GAMEPAD_DPAD_DOWN)
-                m_PointOfViewAngle = 18000;
-            else if ((dpad & (XINPUT_GAMEPAD_DPAD_DOWN | XINPUT_GAMEPAD_DPAD_LEFT)) == (XINPUT_GAMEPAD_DPAD_DOWN | XINPUT_GAMEPAD_DPAD_LEFT))
-                m_PointOfViewAngle = 22500;
-            else if (dpad == XINPUT_GAMEPAD_DPAD_LEFT)
-                m_PointOfViewAngle = 27000;
-            else if ((dpad & (XINPUT_GAMEPAD_DPAD_UP | XINPUT_GAMEPAD_DPAD_LEFT)) == (XINPUT_GAMEPAD_DPAD_UP | XINPUT_GAMEPAD_DPAD_LEFT))
-                m_PointOfViewAngle = 31500;
-
-            // Map Xbox buttons to generic joystick buttons (first 16 buttons)
-            m_Buttons = xstate.Gamepad.wButtons & 0xFFFF;
-
-            m_Polled = TRUE;
-        }
+        ResetState();
     }
 }
 
 // EnumAxesCallback: Enumerate device axes and query their properties
 BOOL CALLBACK DX8InputManager::CKJoystick::EnumAxesCallback(LPCDIDEVICEOBJECTINSTANCE lpddoi, LPVOID pvRef)
 {
-    CKJoystick* joystick = (CKJoystick*)pvRef;
+    CKJoystick *joystick = (CKJoystick *)pvRef;
 
     if (!joystick || !joystick->m_Device)
         return DIENUM_STOP;
@@ -384,42 +303,7 @@ void DX8InputManager::CKJoystick::GetInfo()
 
 CKBOOL DX8InputManager::CKJoystick::IsAttached()
 {
-    return m_Device != NULL || m_XInputUserIndex != (DWORD)-1;
-}
-
-void DX8InputManager::CKJoystick::TransferFrom(CKJoystick &source)
-{
-    // Transfer COM interface pointer without AddRef (move semantics)
-    m_Device = source.m_Device;
-    source.m_Device = NULL;  // Null out source to prevent double-release
-
-    // Copy all other members (XInput members are static, so no need to copy)
-    m_DeviceGUID = source.m_DeviceGUID;
-    m_XInputUserIndex = source.m_XInputUserIndex;
-    m_AxisCaps = source.m_AxisCaps;
-    m_DeadzoneRadius = source.m_DeadzoneRadius;
-    m_Polled = source.m_Polled;
-    m_Position = source.m_Position;
-    m_Rotation = source.m_Rotation;
-    m_Sliders = source.m_Sliders;
-    m_PointOfViewAngle = source.m_PointOfViewAngle;
-    m_Buttons = source.m_Buttons;
-    m_Xmin = source.m_Xmin;
-    m_Xmax = source.m_Xmax;
-    m_Ymin = source.m_Ymin;
-    m_Ymax = source.m_Ymax;
-    m_Zmin = source.m_Zmin;
-    m_Zmax = source.m_Zmax;
-    m_XRmin = source.m_XRmin;
-    m_XRmax = source.m_XRmax;
-    m_YRmin = source.m_YRmin;
-    m_YRmax = source.m_YRmax;
-    m_ZRmin = source.m_ZRmin;
-    m_ZRmax = source.m_ZRmax;
-    m_Umin = source.m_Umin;
-    m_Umax = source.m_Umax;
-    m_Vmin = source.m_Vmin;
-    m_Vmax = source.m_Vmax;
+    return m_Device != NULL;
 }
 
 BOOL DX8InputManager::JoystickEnum(const DIDEVICEINSTANCE *pdidInstance, void *pContext)
@@ -432,9 +316,34 @@ BOOL DX8InputManager::JoystickEnum(const DIDEVICEINSTANCE *pdidInstance, void *p
         HRESULT hr = im->m_DirectInput->CreateDevice(pdidInstance->guidInstance, &pJoystick, NULL);
         if (SUCCEEDED(hr) && pJoystick)
         {
-            im->m_Joysticks[im->m_JoystickCount].m_Device = pJoystick;
-            // Store the device GUID for hot-plug detection
-            im->m_Joysticks[im->m_JoystickCount].m_DeviceGUID = pdidInstance->guidInstance;
+            CKJoystick &joystick = im->m_Joysticks[im->m_JoystickCount];
+            joystick.m_Device = pJoystick;
+
+            // Store the device GUID
+            joystick.m_DeviceGUID = pdidInstance->guidInstance;
+
+            // Store the device product name (convert from TCHAR to char if needed)
+#ifdef UNICODE
+            WideCharToMultiByte(CP_UTF8, 0, pdidInstance->tszProductName, -1,
+                                joystick.m_DeviceName, MAX_PATH, NULL, NULL);
+#else
+            strncpy(joystick.m_DeviceName, pdidInstance->tszProductName, MAX_PATH - 1);
+            joystick.m_DeviceName[MAX_PATH - 1] = '\0';
+#endif
+
+            // Query button count from device capabilities
+            DIDEVCAPS caps;
+            memset(&caps, 0, sizeof(DIDEVCAPS));
+            caps.dwSize = sizeof(DIDEVCAPS);
+            if (SUCCEEDED(pJoystick->GetCapabilities(&caps)))
+            {
+                joystick.m_ButtonCount = (int)caps.dwButtons;
+            }
+            else
+            {
+                joystick.m_ButtonCount = 32; // Default to maximum
+            }
+
             ++im->m_JoystickCount;
             return DIENUM_CONTINUE;
         }

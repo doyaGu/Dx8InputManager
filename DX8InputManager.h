@@ -5,12 +5,6 @@
 
 #define DIRECTINPUT_VERSION 0x800
 #include <dinput.h>
-#include <xinput.h>
-
-// XInput dynamic loading (no static linking)
-typedef DWORD (WINAPI *PFN_XInputGetState)(DWORD, XINPUT_STATE*);
-typedef DWORD (WINAPI *PFN_XInputSetState)(DWORD, XINPUT_VIBRATION*);
-typedef DWORD (WINAPI *PFN_XInputGetCapabilities)(DWORD, DWORD, XINPUT_CAPABILITIES*);
 
 #define KEYBOARD_BUFFER_SIZE 256
 #define MOUSE_BUFFER_SIZE 256
@@ -25,6 +19,34 @@ struct InputFilter
 };
 
 typedef void (*InputEventCallback)(CKDWORD eventType, CKDWORD param1, CKDWORD param2, void *userData);
+
+// Joystick axis enumeration for configuration methods
+enum CK_JOYSTICK_AXIS
+{
+    CK_AXIS_X = 0,
+    CK_AXIS_Y = 1,
+    CK_AXIS_Z = 2,
+    CK_AXIS_RX = 3,
+    CK_AXIS_RY = 4,
+    CK_AXIS_RZ = 5,
+    CK_AXIS_SLIDER0 = 6,
+    CK_AXIS_SLIDER1 = 7
+};
+
+// Joystick capabilities structure
+struct CK_JOYSTICK_CAPS
+{
+    CKBOOL hasX;
+    CKBOOL hasY;
+    CKBOOL hasZ;
+    CKBOOL hasRx;
+    CKBOOL hasRy;
+    CKBOOL hasRz;
+    CKBOOL hasSlider0;
+    CKBOOL hasSlider1;
+    CKBOOL hasPOV;
+    int buttonCount;
+};
 
 class DX8InputManager : public CKInputManager
 {
@@ -60,19 +82,9 @@ public:
         void Poll();
         void GetInfo();
         CKBOOL IsAttached();
-        void TransferFrom(CKJoystick &source);
-
-        // XInput dynamic loading (shared across all joystick instances)
-        static void LoadXInput();
-        static void UnloadXInput();
-        static CKBOOL IsXInputAvailable() { return s_XInputGetState != NULL; }
 
     private:
-        // XInput dynamic loading (static members shared by all instances)
-        static HMODULE s_XInputDLL;
-        static PFN_XInputGetState s_XInputGetState;
-        static PFN_XInputSetState s_XInputSetState;
-        static PFN_XInputGetCapabilities s_XInputGetCapabilities;
+        void ResetState();
 
         // Axis capability flags
         struct AxisCapabilities
@@ -92,10 +104,12 @@ public:
         static BOOL CALLBACK EnumAxesCallback(LPCDIDEVICEOBJECTINSTANCE lpddoi, LPVOID pvRef);
 
         LPDIRECTINPUTDEVICE8 m_Device;
-        GUID m_DeviceGUID;               // Device instance GUID for hot-plug detection
-        DWORD m_XInputUserIndex;         // XInput user index (0-3), or -1 if not an XInput device
-        AxisCapabilities m_AxisCaps;     // Track which axes are available on this device
-        float m_DeadzoneRadius;          // Deadzone radius (0.0 to 1.0, default 0.01)
+        GUID m_DeviceGUID;           // Device instance GUID
+        char m_DeviceName[MAX_PATH]; // Device product name
+        AxisCapabilities m_AxisCaps; // Track which axes are available on this device
+        float m_DeadzoneRadius;      // Deadzone radius (0.0 to 1.0, default 0.01)
+        float m_Gain;                // Sensitivity gain multiplier (0.0 to 2.0, default 1.0)
+        int m_ButtonCount;           // Number of buttons on this device
         CKDWORD m_Polled;
         VxVector m_Position;
         VxVector m_Rotation;
@@ -165,18 +179,43 @@ public:
     virtual int GetJoystickCount();
     virtual IDirectInputDevice8 *GetJoystickDxInterface(int iJoystick);
 
+    virtual int GetMaxJoysticks();                  // Get current maximum joystick limit
+    virtual void SetMaxJoysticks(int maxJoysticks); // Set maximum number of joysticks (must call before initialization)
+
+    virtual const char *GetJoystickName(int iJoystick);
+    virtual CKBOOL GetJoystickCapabilities(int iJoystick, CK_JOYSTICK_CAPS *caps); // Query device capabilities
+
     // Joystick configuration methods
-    virtual void SetJoystickDeadzone(int iJoystick, float radius);  // Set deadzone radius (0.0 to 1.0)
-    virtual float GetJoystickDeadzone(int iJoystick);  // Get current deadzone radius
-    virtual void SetMaxJoysticks(int maxJoysticks);  // Set maximum number of joysticks (must call before initialization)
-    virtual int GetMaxJoysticks();  // Get current maximum joystick limit
+    virtual float GetJoystickDeadzone(int iJoystick);              // Get current deadzone radius
+    virtual void SetJoystickDeadzone(int iJoystick, float radius); // Set deadzone radius (0.0 to 1.0)
+
+    virtual float GetJoystickGain(int iJoystick);            // Get current sensitivity gain
+    virtual void SetJoystickGain(int iJoystick, float gain); // Set sensitivity gain (0.0 to 2.0, default 1.0)
+
+    virtual CKBOOL GetJoystickAxisRange(int iJoystick, CK_JOYSTICK_AXIS axis, LONG *min, LONG *max); // Query axis range
+    virtual CKBOOL SetJoystickAxisRange(int iJoystick, CK_JOYSTICK_AXIS axis, LONG min, LONG max);   // Set custom axis range
+    virtual CKBOOL ResetJoystickAxisRanges(int iJoystick);                                           // Reset all axes to device defaults
+
+    // Keyboard repeat configuration methods
+    virtual CKDWORD GetKeyboardRepeatDelay();
+    virtual void SetKeyboardRepeatDelay(CKDWORD delay);
+    virtual CKDWORD GetKeyboardRepeatInterval();
+    virtual void SetKeyboardRepeatInterval(CKDWORD interval);
+
+    // Mouse wheel methods
+    virtual int GetMouseWheelDelta();
+    virtual int GetMouseWheelPosition();
 
     // State setting methods
     virtual void SetKeyDown(CKDWORD iKey);
     virtual void SetKeyUp(CKDWORD iKey);
+
     virtual void SetMouseButtonDown(CK_MOUSEBUTTON iButton);
     virtual void SetMouseButtonUp(CK_MOUSEBUTTON iButton);
     virtual void SetMousePosition(const Vx2DVector &position);
+    virtual void SetMouseWheel(int wheelDelta);
+    virtual void SetMouseWheelPosition(int position);
+
     virtual void SetJoystickButtonDown(int iJoystick, int iButton);
     virtual void SetJoystickButtonUp(int iJoystick, int iButton);
     virtual void SetJoystickPosition(int iJoystick, const VxVector &position);
@@ -187,12 +226,6 @@ public:
     virtual void SetJoystickCompleteState(int iJoystick, const VxVector &pos, const VxVector &rot, const Vx2DVector &sliders, CKDWORD buttons, CKDWORD pov);
     virtual void SetMultipleKeys(const CKDWORD *keys, int count, CKBOOL pressed);
     virtual void ClearAllInputState();
-
-    // Mouse wheel enhancements
-    virtual int GetMouseWheelDelta();
-    virtual int GetMouseWheelPosition();
-    virtual void SetMouseWheel(int wheelDelta);
-    virtual void SetMouseWheelPosition(int position);
 
     // Input filtering methods
     virtual void SetInputFilter(CKBOOL keyboard, CKBOOL mouse, CKBOOL joystick);
@@ -263,16 +296,9 @@ protected:
     int m_CallbackCount;
     int m_MouseWheelPosition;
 
-    // Hot-plug detection variables
-    DWORD m_LastDeviceCheckTime;
-    DWORD m_DeviceCheckInterval;  // Milliseconds between device checks (default 1000ms)
-    GUID m_DeviceGUIDs[16];  // Track device GUIDs to detect changes
-    DWORD m_XInputStates[XUSER_MAX_COUNT];  // Track XInput connection states (0 = disconnected, 1 = connected)
-
 private:
     void EnsureCursorVisible(CKBOOL iShow);
     CKBOOL IsKeyAllowed(CKDWORD key);
-    void CheckForDeviceChanges();
 };
 
 #endif // DX8INPUTMANAGER_H
