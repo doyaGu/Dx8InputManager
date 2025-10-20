@@ -629,6 +629,30 @@ void DX8InputManager::SetKeyUp(CKDWORD iKey)
     }
 }
 
+void DX8InputManager::SetMultipleKeys(const CKDWORD *keys, int count, CKBOOL pressed)
+{
+    if (!keys)
+        return;
+
+    for (int i = 0; i < count; i++)
+    {
+        CKDWORD key = keys[i];
+        if (key < KEYBOARD_BUFFER_SIZE)
+        {
+            if (pressed)
+            {
+                m_KeyboardState[key] |= KS_PRESSED;
+                m_KeyboardStamps[key] = ::GetTickCount();
+            }
+            else
+            {
+                m_KeyboardState[key] |= KS_RELEASED;
+                m_KeyboardStamps[key] = ::GetTickCount();
+            }
+        }
+    }
+}
+
 void DX8InputManager::SetMouseButtonDown(CK_MOUSEBUTTON iButton)
 {
     if (iButton < 4)
@@ -721,30 +745,6 @@ void DX8InputManager::SetJoystickState(int iJoystick, const VxVector &pos, const
         m_Joysticks[iJoystick].m_Buttons = buttons;
         m_Joysticks[iJoystick].m_PointOfViewAngle = (pov == 0xFFFFFFFF) ? -1 : (LONG)pov;
         m_Joysticks[iJoystick].m_Polled = TRUE;
-    }
-}
-
-void DX8InputManager::SetMultipleKeys(const CKDWORD *keys, int count, CKBOOL pressed)
-{
-    if (!keys)
-        return;
-
-    for (int i = 0; i < count; i++)
-    {
-        CKDWORD key = keys[i];
-        if (key < KEYBOARD_BUFFER_SIZE)
-        {
-            if (pressed)
-            {
-                m_KeyboardState[key] |= KS_PRESSED;
-                m_KeyboardStamps[key] = ::GetTickCount();
-            }
-            else
-            {
-                m_KeyboardState[key] |= KS_RELEASED;
-                m_KeyboardStamps[key] = ::GetTickCount();
-            }
-        }
     }
 }
 

@@ -198,6 +198,7 @@ public:
     // State setting methods
     virtual void SetKeyDown(CKDWORD iKey);
     virtual void SetKeyUp(CKDWORD iKey);
+    virtual void SetMultipleKeys(const CKDWORD *keys, int count, CKBOOL pressed);
 
     virtual void SetMouseButtonDown(CK_MOUSEBUTTON iButton);
     virtual void SetMouseButtonUp(CK_MOUSEBUTTON iButton);
@@ -213,7 +214,6 @@ public:
     virtual void SetKeyboardState(const CKBYTE *states, const int *stamps);
     virtual void SetMouseState(const Vx2DVector &pos, const CKBYTE *buttons, const VxVector &delta);
     virtual void SetJoystickState(int iJoystick, const VxVector &pos, const VxVector &rot, const Vx2DVector &sliders, CKDWORD buttons, CKDWORD pov);
-    virtual void SetMultipleKeys(const CKDWORD *keys, int count, CKBOOL pressed);
     virtual void ClearAllInputState();
 
     // Internal functions
