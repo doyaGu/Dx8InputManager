@@ -655,7 +655,6 @@ void DX8InputManager::SetMouseWheel(int wheelDelta)
 {
     m_Mouse.m_State.lZ = wheelDelta;
     m_MouseWheelPosition += wheelDelta;
-    TriggerEvent(4, wheelDelta, 0);
 }
 
 void DX8InputManager::SetMouseWheelPosition(int position)
@@ -663,7 +662,6 @@ void DX8InputManager::SetMouseWheelPosition(int position)
     int delta = position - m_MouseWheelPosition;
     m_Mouse.m_State.lZ = delta;
     m_MouseWheelPosition = position;
-    TriggerEvent(4, delta, 0);
 }
 
 void DX8InputManager::SetJoystickButtonDown(int iJoystick, int iButton)
@@ -841,65 +839,6 @@ CKBOOL DX8InputManager::IsInputFiltered(CKDWORD key)
     return IsKeyAllowed(key);
 }
 
-// Event callback methods
-void DX8InputManager::RegisterEventCallback(InputEventCallback callback, void *userData)
-{
-    if (!callback)
-        return;
-
-    if (m_CallbackCount < 8)
-    {
-        // Check if callback already registered
-        for (int i = 0; i < m_CallbackCount; i++)
-        {
-            if (m_EventCallbacks[i] == callback)
-            {
-                m_CallbackUserData[i] = userData;
-                return;
-            }
-        }
-
-        // Add new callback
-        m_EventCallbacks[m_CallbackCount] = callback;
-        m_CallbackUserData[m_CallbackCount] = userData;
-        m_CallbackCount++;
-    }
-    else
-    {
-        // Warn that callback limit has been reached
-        ::OutputDebugString(TEXT("DX8InputManager: Cannot register callback - maximum limit (8) reached"));
-    }
-}
-
-void DX8InputManager::UnregisterEventCallback(InputEventCallback callback)
-{
-    for (int i = 0; i < m_CallbackCount; i++)
-    {
-        if (m_EventCallbacks[i] == callback)
-        {
-            // Shift remaining callbacks
-            for (int j = i; j < m_CallbackCount - 1; j++)
-            {
-                m_EventCallbacks[j] = m_EventCallbacks[j + 1];
-                m_CallbackUserData[j] = m_CallbackUserData[j + 1];
-            }
-            m_CallbackCount--;
-            break;
-        }
-    }
-}
-
-void DX8InputManager::TriggerEvent(CKDWORD eventType, CKDWORD param1, CKDWORD param2)
-{
-    for (int i = 0; i < m_CallbackCount; i++)
-    {
-        if (m_EventCallbacks[i])
-        {
-            m_EventCallbacks[i](eventType, param1, param2, m_CallbackUserData[i]);
-        }
-    }
-}
-
 CKERROR DX8InputManager::OnCKInit()
 {
     if (!m_Keyboard)
@@ -1007,13 +946,11 @@ CKERROR DX8InputManager::PreProcess()
                         {
                             m_KeyboardState[iKey] |= KS_PRESSED;
                             m_KeyboardStamps[iKey] = m_KeyInBuffer[i].dwTimeStamp;
-                            TriggerEvent(1, iKey, m_KeyboardStamps[iKey]); // Key press trigger
                         }
                         else
                         {
                             m_KeyboardState[iKey] |= KS_RELEASED;
                             m_KeyboardStamps[iKey] = m_KeyInBuffer[i].dwTimeStamp - m_KeyboardStamps[iKey];
-                            TriggerEvent(5, iKey, m_KeyboardStamps[iKey]); // Key release trigger
                         }
                     }
                 }
@@ -1102,11 +1039,6 @@ DX8InputManager::~DX8InputManager()
     // Free dynamically allocated joystick array
     if (m_Joysticks)
         delete[] m_Joysticks;
-
-    // Clear event callbacks
-    memset(m_EventCallbacks, 0, sizeof(m_EventCallbacks));
-    memset(m_CallbackUserData, 0, sizeof(m_CallbackUserData));
-    m_CallbackCount = 0;
 }
 
 DX8InputManager::DX8InputManager(CKContext *context) : CKInputManager(context, "DirectX Input Manager")
@@ -1134,11 +1066,6 @@ DX8InputManager::DX8InputManager(CKContext *context) : CKInputManager(context, "
     m_Filter.joystickEnabled = TRUE;
     m_Filter.allowedKeys = NULL;
     m_Filter.allowedKeyCount = 0;
-
-    // Initialize event system
-    memset(m_EventCallbacks, 0, sizeof(m_EventCallbacks));
-    memset(m_CallbackUserData, 0, sizeof(m_CallbackUserData));
-    m_CallbackCount = 0;
 
     m_MouseWheelPosition = 0;
 

@@ -18,8 +18,6 @@ struct InputFilter
     int allowedKeyCount;
 };
 
-typedef void (*InputEventCallback)(CKDWORD eventType, CKDWORD param1, CKDWORD param2, void *userData);
-
 // Joystick axis enumeration for configuration methods
 enum CK_JOYSTICK_AXIS
 {
@@ -233,11 +231,6 @@ public:
     virtual void ClearInputFilters();
     virtual CKBOOL IsInputFiltered(CKDWORD key);
 
-    // Event callback methods
-    virtual void RegisterEventCallback(InputEventCallback callback, void *userData);
-    virtual void UnregisterEventCallback(InputEventCallback callback);
-    virtual void TriggerEvent(CKDWORD eventType, CKDWORD param1, CKDWORD param2);
-
     // Internal functions
 
     virtual CKERROR OnCKInit();
@@ -291,9 +284,6 @@ protected:
     CKBOOL m_ShowCursor;
 
     InputFilter m_Filter;
-    InputEventCallback m_EventCallbacks[8];
-    void *m_CallbackUserData[8];
-    int m_CallbackCount;
     int m_MouseWheelPosition;
 
 private:
