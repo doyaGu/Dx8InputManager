@@ -324,7 +324,7 @@ const char *DX8InputManager::GetJoystickName(int iJoystick)
     return "Game Controller";
 }
 
-CKBOOL DX8InputManager::GetJoystickCapabilities(int iJoystick, CK_JOYSTICK_CAPS *caps)
+CKBOOL DX8InputManager::GetJoystickCapabilities(int iJoystick, CKDWORD *caps)
 {
     if (iJoystick < 0 || iJoystick >= m_JoystickCount)
     {
@@ -340,18 +340,29 @@ CKBOOL DX8InputManager::GetJoystickCapabilities(int iJoystick, CK_JOYSTICK_CAPS 
 
     CKJoystick &joystick = m_Joysticks[iJoystick];
 
-    // Common capabilities
-    caps->buttonCount = joystick.m_ButtonCount;
+    // Initialize capabilities to 0
+    *caps = 0;
 
-    // DirectInput devices have variable capabilities
-    caps->hasX = joystick.m_AxisCaps.hasX;
-    caps->hasY = joystick.m_AxisCaps.hasY;
-    caps->hasZ = joystick.m_AxisCaps.hasZ;
-    caps->hasRx = joystick.m_AxisCaps.hasRx;
-    caps->hasRy = joystick.m_AxisCaps.hasRy;
-    caps->hasRz = joystick.m_AxisCaps.hasRz;
-    caps->hasSlider0 = joystick.m_AxisCaps.hasSlider0;
-    caps->hasSlider1 = joystick.m_AxisCaps.hasSlider1;
+    // Set button count in the upper bits
+    *caps |= ((joystick.m_ButtonCount & 0xFFFF) << CK_JOYSTICK_BUTTON_COUNT_SHIFT);
+
+    // Set axis capabilities as bit flags
+    if (joystick.m_AxisCaps.hasX)
+        *caps |= CK_JOYSTICK_HAS_X;
+    if (joystick.m_AxisCaps.hasY)
+        *caps |= CK_JOYSTICK_HAS_Y;
+    if (joystick.m_AxisCaps.hasZ)
+        *caps |= CK_JOYSTICK_HAS_Z;
+    if (joystick.m_AxisCaps.hasRx)
+        *caps |= CK_JOYSTICK_HAS_RX;
+    if (joystick.m_AxisCaps.hasRy)
+        *caps |= CK_JOYSTICK_HAS_RY;
+    if (joystick.m_AxisCaps.hasRz)
+        *caps |= CK_JOYSTICK_HAS_RZ;
+    if (joystick.m_AxisCaps.hasSlider0)
+        *caps |= CK_JOYSTICK_HAS_SLIDER0;
+    if (joystick.m_AxisCaps.hasSlider1)
+        *caps |= CK_JOYSTICK_HAS_SLIDER1;
 
     // Query DirectInput device for POV capability
     if (joystick.m_Device)
@@ -359,18 +370,10 @@ CKBOOL DX8InputManager::GetJoystickCapabilities(int iJoystick, CK_JOYSTICK_CAPS 
         DIDEVCAPS devcaps;
         memset(&devcaps, 0, sizeof(DIDEVCAPS));
         devcaps.dwSize = sizeof(DIDEVCAPS);
-        if (SUCCEEDED(joystick.m_Device->GetCapabilities(&devcaps)))
+        if (SUCCEEDED(joystick.m_Device->GetCapabilities(&devcaps)) && devcaps.dwPOVs > 0)
         {
-            caps->hasPOV = (devcaps.dwPOVs > 0);
+            *caps |= CK_JOYSTICK_HAS_POV;
         }
-        else
-        {
-            caps->hasPOV = FALSE;
-        }
-    }
-    else
-    {
-        caps->hasPOV = FALSE;
     }
 
     return TRUE;

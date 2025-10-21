@@ -22,20 +22,34 @@ enum CK_JOYSTICK_AXIS
     CK_AXIS_SLIDER1 = 7
 };
 
-// Joystick capabilities structure
-struct CK_JOYSTICK_CAPS
+// Joystick capabilities flags
+enum CK_JOYSTICK_CAPS
 {
-    CKBOOL hasX;
-    CKBOOL hasY;
-    CKBOOL hasZ;
-    CKBOOL hasRx;
-    CKBOOL hasRy;
-    CKBOOL hasRz;
-    CKBOOL hasSlider0;
-    CKBOOL hasSlider1;
-    CKBOOL hasPOV;
-    int buttonCount;
+    CK_JOYSTICK_HAS_X = 0x00000001,
+    CK_JOYSTICK_HAS_Y = 0x00000002,
+    CK_JOYSTICK_HAS_Z = 0x00000004,
+    CK_JOYSTICK_HAS_RX = 0x00000008,
+    CK_JOYSTICK_HAS_RY = 0x00000010,
+    CK_JOYSTICK_HAS_RZ = 0x00000020,
+    CK_JOYSTICK_HAS_SLIDER0 = 0x00000040,
+    CK_JOYSTICK_HAS_SLIDER1 = 0x00000080,
+    CK_JOYSTICK_HAS_POV = 0x00000100,
+    // Button count is stored in the upper bits (shifted by 16)
+    CK_JOYSTICK_BUTTON_COUNT_SHIFT = 16,
+    CK_JOYSTICK_BUTTON_COUNT_MASK = 0xFFFF0000
 };
+
+// Helper functions for CK_JOYSTICK_CAPS
+inline int GetJoystickButtonCount(CKDWORD caps) { return (caps & CK_JOYSTICK_BUTTON_COUNT_MASK) >> CK_JOYSTICK_BUTTON_COUNT_SHIFT; }
+inline CKBOOL HasJoystickX(CKDWORD caps) { return (caps & CK_JOYSTICK_HAS_X) != 0; }
+inline CKBOOL HasJoystickY(CKDWORD caps) { return (caps & CK_JOYSTICK_HAS_Y) != 0; }
+inline CKBOOL HasJoystickZ(CKDWORD caps) { return (caps & CK_JOYSTICK_HAS_Z) != 0; }
+inline CKBOOL HasJoystickRx(CKDWORD caps) { return (caps & CK_JOYSTICK_HAS_RX) != 0; }
+inline CKBOOL HasJoystickRy(CKDWORD caps) { return (caps & CK_JOYSTICK_HAS_RY) != 0; }
+inline CKBOOL HasJoystickRz(CKDWORD caps) { return (caps & CK_JOYSTICK_HAS_RZ) != 0; }
+inline CKBOOL HasJoystickSlider0(CKDWORD caps) { return (caps & CK_JOYSTICK_HAS_SLIDER0) != 0; }
+inline CKBOOL HasJoystickSlider1(CKDWORD caps) { return (caps & CK_JOYSTICK_HAS_SLIDER1) != 0; }
+inline CKBOOL HasJoystickPOV(CKDWORD caps) { return (caps & CK_JOYSTICK_HAS_POV) != 0; }
 
 class DX8InputManager : public CKInputManager
 {
@@ -172,7 +186,7 @@ public:
     virtual void SetMaxJoysticks(int maxJoysticks); // Set maximum number of joysticks (must call before initialization)
 
     virtual const char *GetJoystickName(int iJoystick);
-    virtual CKBOOL GetJoystickCapabilities(int iJoystick, CK_JOYSTICK_CAPS *caps); // Query device capabilities
+    virtual CKBOOL GetJoystickCapabilities(int iJoystick, CKDWORD *caps); // Query device capabilities
 
     // Joystick configuration methods
     virtual float GetJoystickDeadzone(int iJoystick);              // Get current deadzone radius
