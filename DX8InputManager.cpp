@@ -715,6 +715,44 @@ void DX8InputManager::SetJoystickPosition(int iJoystick, const VxVector &positio
     }
 }
 
+void DX8InputManager::SetJoystickRotation(int iJoystick, const VxVector &rotation)
+{
+    if (iJoystick >= 0 && iJoystick < m_JoystickCount)
+    {
+        m_Joysticks[iJoystick].m_Rotation = rotation;
+        m_Joysticks[iJoystick].m_Polled = TRUE;
+    }
+}
+
+void DX8InputManager::SetJoystickSliders(int iJoystick, const Vx2DVector &sliders)
+{
+    if (iJoystick >= 0 && iJoystick < m_JoystickCount)
+    {
+        m_Joysticks[iJoystick].m_Sliders = sliders;
+        m_Joysticks[iJoystick].m_Polled = TRUE;
+    }
+}
+
+void DX8InputManager::SetJoystickPOV(int iJoystick, float angle)
+{
+    if (iJoystick >= 0 && iJoystick < m_JoystickCount)
+    {
+        // Convert angle from radians to the format expected by DirectInput (degrees * 100)
+        // -1.0f is a special value indicating POV is not pressed/centered
+        if (angle < 0.0f)
+        {
+            m_Joysticks[iJoystick].m_PointOfViewAngle = -1;
+        }
+        else
+        {
+            // Convert radians to degrees * 100 (DirectInput format)
+            float degrees = angle * 180.0f / PI;
+            m_Joysticks[iJoystick].m_PointOfViewAngle = (CKDWORD)(degrees * 100.0f);
+        }
+        m_Joysticks[iJoystick].m_Polled = TRUE;
+    }
+}
+
 void DX8InputManager::SetKeyboardState(const CKBYTE *states, const int *stamps)
 {
     if (states)

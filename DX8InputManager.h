@@ -209,6 +209,9 @@ public:
     virtual void SetJoystickButtonDown(int iJoystick, int iButton);
     virtual void SetJoystickButtonUp(int iJoystick, int iButton);
     virtual void SetJoystickPosition(int iJoystick, const VxVector &position);
+    virtual void SetJoystickRotation(int iJoystick, const VxVector &rotation);
+    virtual void SetJoystickSliders(int iJoystick, const Vx2DVector &sliders);
+    virtual void SetJoystickPOV(int iJoystick, float angle);
 
     // Advanced state setting methods
     virtual void SetKeyboardState(const CKBYTE *states, const int *stamps);
