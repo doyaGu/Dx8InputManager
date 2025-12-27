@@ -33,9 +33,17 @@ endif ()
 # Generate a CompilationDatabase (compile_commands.json)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
-set(VIRTOOLS_SDK_PATH "${VIRTOOLS_SDK_PATH}" CACHE PATH "Path to the Virtools SDK")
-set(VIRTOOLS_SDK_FETCH_FROM_GIT "${VIRTOOLS_SDK_FETCH_FROM_GIT}" CACHE BOOL "Set to ON to fetch copy of SDK from git if not otherwise locatable")
-set(VIRTOOLS_SDK_FETCH_FROM_GIT_PATH "${VIRTOOLS_SDK_FETCH_FROM_GIT_PATH}" CACHE FILEPATH "location to download SDK")
+set(VIRTOOLS_SDK_PATH "" CACHE PATH "Path to the Virtools SDK")
+option(VIRTOOLS_SDK_FETCH_FROM_GIT "Set to ON to fetch copy of SDK from git if not otherwise locatable" OFF)
+set(VIRTOOLS_SDK_FETCH_FROM_GIT_PATH "" CACHE FILEPATH "Location to download SDK")
+
+if (NOT VIRTOOLS_SDK_PATH)
+    if (DEFINED ENV{VIRTOOLS_SDK_PATH})
+        set(VIRTOOLS_SDK_PATH "$ENV{VIRTOOLS_SDK_PATH}" CACHE PATH "Path to the Virtools SDK" FORCE)
+    elseif (DEFINED ENV{VIRTOOLS_SDK})
+        set(VIRTOOLS_SDK_PATH "$ENV{VIRTOOLS_SDK}" CACHE PATH "Path to the Virtools SDK" FORCE)
+    endif ()
+endif ()
 
 if (NOT VIRTOOLS_SDK_PATH)
     if (NOT VIRTOOLS_SDK_FETCH_FROM_GIT)
@@ -47,20 +55,18 @@ if (NOT VIRTOOLS_SDK_PATH)
             get_filename_component(FETCHCONTENT_BASE_DIR "${VIRTOOLS_SDK_FETCH_FROM_GIT_PATH}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
         endif ()
         FetchContent_Declare(
-                Virtools_SDK
-                GIT_REPOSITORY https://github.com/doyaGu/Virtools-SDK-2.1.git
-                GIT_TAG main
+            Virtools_SDK
+            GIT_REPOSITORY https://github.com/doyaGu/Virtools-SDK-2.1.git
+            GIT_TAG main
         )
-        if (NOT Virtools_SDK)
-            message("Downloading Virtools SDK")
-            FetchContent_Populate(Virtools_SDK)
-            set(VIRTOOLS_SDK_PATH "${virtools_sdk_SOURCE_DIR}" CACHE PATH "Path to the Virtools SDK" FORCE)
-        endif ()
+        message(STATUS "Downloading Virtools SDK")
+        FetchContent_MakeAvailable(Virtools_SDK)
+        set(VIRTOOLS_SDK_PATH "${virtools_sdk_SOURCE_DIR}" CACHE PATH "Path to the Virtools SDK" FORCE)
         set(FETCHCONTENT_BASE_DIR ${FETCHCONTENT_BASE_DIR_SAVE})
     endif ()
 endif ()
 
-find_package(VirtoolsSDK REQUIRED HINTS ${VIRTOOLS_SDK_PATH})
+find_package(VirtoolsSDK REQUIRED HINTS "${VIRTOOLS_SDK_PATH}")
 
 add_compile_definitions(
         $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>
