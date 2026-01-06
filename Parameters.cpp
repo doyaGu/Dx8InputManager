@@ -14,10 +14,10 @@ int CKKeyStringFunc(CKParameter *param, CKSTRING ValueString, CKBOOL ReadFromStr
     if (ReadFromString)
     {
         if (!ValueString) return 0;
-        CKSTRING name = NULL;
+        CKDWORD key = 0;
         if (ValueString[0] != '\0')
-            name = (CKSTRING)im->GetKeyFromName(ValueString);
-        param->SetValue(&name);
+            key = im->GetKeyFromName(ValueString);
+        param->SetValue(&key);
     }
     else
     {
