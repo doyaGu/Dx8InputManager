@@ -54,7 +54,7 @@ PLUGIN_EXPORT CKPluginInfo *CKGetPluginInfo(int Index)
     g_InputManager_PluginInfo.m_Description = "DirectX Keyboard/Mouse/Joystick Manager";
     g_InputManager_PluginInfo.m_Extension = "";
     g_InputManager_PluginInfo.m_Type = CKPLUGIN_MANAGER_DLL;
-    g_InputManager_PluginInfo.m_Version = 0x000001;
+    g_InputManager_PluginInfo.m_Version = 0x000002;
     g_InputManager_PluginInfo.m_InitInstanceFct = CreateNewManager;
     g_InputManager_PluginInfo.m_ExitInstanceFct = RemoveManager;
     g_InputManager_PluginInfo.m_GUID = DX8_INPUTMANAGER_GUID;
