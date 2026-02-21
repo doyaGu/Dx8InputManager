@@ -6,7 +6,7 @@
 #define CKOGUID_GETMOUSEX CKGUID(0x53c51abe, 0xeba68de)
 #define CKOGUID_GETMOUSEY CKGUID(0x27af3c9f, 0xdbc4eb3)
 
-int CKKeyStringFunc(CKParameter *param, CKSTRING ValueString, CKBOOL ReadFromString)
+int CKKeyStringFunc(CKParameter *param, char *ValueString, CKBOOL ReadFromString)
 {
     if (!param) return 0;
 

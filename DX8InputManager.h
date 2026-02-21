@@ -144,7 +144,7 @@ public:
     virtual CKBOOL IsKeyUp(CKDWORD iKey);
     virtual CKBOOL IsKeyToggled(CKDWORD iKey, CKDWORD *oStamp = NULL);
 
-    virtual int GetKeyName(CKDWORD iKey, CKSTRING oKeyName);
+    virtual int GetKeyName(CKDWORD iKey, char *oKeyName);
     virtual CKDWORD GetKeyFromName(CKSTRING iKeyName);
     virtual unsigned char *GetKeyboardState();
 
@@ -185,7 +185,7 @@ public:
     virtual int GetMaxJoysticks();                  // Get current maximum joystick limit
     virtual void SetMaxJoysticks(int maxJoysticks); // Set maximum number of joysticks (must call before initialization)
 
-    virtual const char *GetJoystickName(int iJoystick);
+    virtual CKSTRING GetJoystickName(int iJoystick);
     virtual CKBOOL GetJoystickCapabilities(int iJoystick, CKDWORD *caps); // Query device capabilities
 
     // Joystick configuration methods

@@ -39,7 +39,7 @@ CKBOOL DX8InputManager::IsKeyToggled(CKDWORD iKey, CKDWORD *oStamp)
     return TRUE;
 }
 
-int DX8InputManager::GetKeyName(CKDWORD iKey, CKSTRING oKeyName)
+int DX8InputManager::GetKeyName(CKDWORD iKey, char *oKeyName)
 {
     return VxScanCodeToName(iKey, oKeyName);
 }
@@ -310,7 +310,7 @@ void DX8InputManager::SetMaxJoysticks(int maxJoysticks)
     m_MaxJoysticks = maxJoysticks;
 }
 
-const char *DX8InputManager::GetJoystickName(int iJoystick)
+CKSTRING DX8InputManager::GetJoystickName(int iJoystick)
 {
     if (iJoystick < 0 || iJoystick >= m_JoystickCount)
         return "Unknown";
