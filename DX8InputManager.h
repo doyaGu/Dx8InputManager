@@ -1,10 +1,10 @@
 #ifndef DX8INPUTMANAGER_H
 #define DX8INPUTMANAGER_H
 
-#include "CKInputManager.h"
-
 #define DIRECTINPUT_VERSION 0x800
 #include <dinput.h>
+
+#include "CKInputManager.h"
 
 #define KEYBOARD_BUFFER_SIZE 256
 #define MOUSE_BUFFER_SIZE 256
