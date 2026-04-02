@@ -1022,9 +1022,12 @@ CKERROR DX8InputManager::PostProcess()
 
 DX8InputManager::~DX8InputManager()
 {
-    // Free dynamically allocated joystick array
-    if (m_Joysticks)
-        delete[] m_Joysticks;
+    // Ensure DirectInput resources are released even if OnCKEnd was not called
+    Uninitialize();
+
+    delete[] m_Joysticks;
+    m_Joysticks = NULL;
+    m_JoystickCount = 0;
 }
 
 DX8InputManager::DX8InputManager(CKContext *context) : CKInputManager(context, "DirectX Input Manager")
@@ -1076,9 +1079,7 @@ void DX8InputManager::Initialize(HWND hWnd)
     HRESULT hr = DirectInput8Create(::GetModuleHandle(TEXT("CK2.dll")), DIRECTINPUT_VERSION, IID_IDirectInput8, (void **)&m_DirectInput, NULL);
     if (!m_DirectInput || FAILED(hr))
     {
-        TCHAR msg[256];
-        snprintf(msg, 256, TEXT("DX8InputManager: DirectInput8Create failed (HRESULT: 0x%08X)"), hr);
-        ::OutputDebugString(msg);
+        ::OutputDebugString(TEXT("DX8InputManager: DirectInput8Create failed"));
         ::MessageBox(hWnd, TEXT("Cannot Initialize Input Manager"), TEXT("Initialization Error"), MB_OK);
         // Note: Continues execution to allow graceful degradation - methods check device availability
     }
@@ -1089,18 +1090,14 @@ void DX8InputManager::Initialize(HWND hWnd)
         hr = m_DirectInput->CreateDevice(GUID_SysKeyboard, &m_Keyboard, NULL);
         if (FAILED(hr))
         {
-            TCHAR msg[256];
-            snprintf(msg, 256, TEXT("DX8InputManager: CreateDevice for keyboard failed (HRESULT: 0x%08X)"), hr);
-            ::OutputDebugString(msg);
+            ::OutputDebugString(TEXT("DX8InputManager: CreateDevice for keyboard failed"));
         }
 
         // Obtain an interface to the system mouse device.
         hr = m_DirectInput->CreateDevice(GUID_SysMouse, &m_Mouse.m_Device, NULL);
         if (FAILED(hr))
         {
-            TCHAR msg[256];
-            snprintf(msg, 256, TEXT("DX8InputManager: CreateDevice for mouse failed (HRESULT: 0x%08X)"), hr);
-            ::OutputDebugString(msg);
+            ::OutputDebugString(TEXT("DX8InputManager: CreateDevice for mouse failed"));
         }
 
         // Enumerate DirectInput devices (joysticks, gamepads, wheels, flight sticks, etc.)
