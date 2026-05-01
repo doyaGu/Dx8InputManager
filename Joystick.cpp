@@ -306,48 +306,57 @@ CKBOOL DX8InputManager::CKJoystick::IsAttached()
     return m_Device != NULL;
 }
 
+static BOOL GetJoystickEnumerationAction(int joystickCount, int maxJoysticks, HRESULT createDeviceResult, BOOL deviceCreated)
+{
+    if (joystickCount >= maxJoysticks)
+        return DIENUM_STOP;
+
+    if (FAILED(createDeviceResult) || !deviceCreated)
+        return DIENUM_CONTINUE;
+
+    return DIENUM_CONTINUE;
+}
+
 BOOL DX8InputManager::JoystickEnum(const DIDEVICEINSTANCE *pdidInstance, void *pContext)
 {
     DX8InputManager *im = (DX8InputManager *)pContext;
 
-    if (im->m_JoystickCount < im->m_MaxJoysticks)
-    {
-        LPDIRECTINPUTDEVICE8 pJoystick = NULL;
-        HRESULT hr = im->m_DirectInput->CreateDevice(pdidInstance->guidInstance, &pJoystick, NULL);
-        if (SUCCEEDED(hr) && pJoystick)
-        {
-            CKJoystick &joystick = im->m_Joysticks[im->m_JoystickCount];
-            joystick.m_Device = pJoystick;
+    if (im->m_JoystickCount >= im->m_MaxJoysticks)
+        return DIENUM_STOP;
 
-            // Store the device GUID
-            joystick.m_DeviceGUID = pdidInstance->guidInstance;
+    LPDIRECTINPUTDEVICE8 pJoystick = NULL;
+    HRESULT hr = im->m_DirectInput->CreateDevice(pdidInstance->guidInstance, &pJoystick, NULL);
+    if (FAILED(hr) || !pJoystick)
+        return GetJoystickEnumerationAction(im->m_JoystickCount, im->m_MaxJoysticks, hr, FALSE);
 
-            // Store the device product name (convert from TCHAR to char if needed)
+    CKJoystick &joystick = im->m_Joysticks[im->m_JoystickCount];
+    joystick.m_Device = pJoystick;
+
+    // Store the device GUID
+    joystick.m_DeviceGUID = pdidInstance->guidInstance;
+
+    // Store the device product name (convert from TCHAR to char if needed)
 #ifdef UNICODE
-            WideCharToMultiByte(CP_UTF8, 0, pdidInstance->tszProductName, -1,
-                                joystick.m_DeviceName, MAX_PATH, NULL, NULL);
+    WideCharToMultiByte(CP_UTF8, 0, pdidInstance->tszProductName, -1,
+                        joystick.m_DeviceName, MAX_PATH, NULL, NULL);
 #else
-            strncpy(joystick.m_DeviceName, pdidInstance->tszProductName, MAX_PATH - 1);
-            joystick.m_DeviceName[MAX_PATH - 1] = '\0';
+    strncpy(joystick.m_DeviceName, pdidInstance->tszProductName, MAX_PATH - 1);
+    joystick.m_DeviceName[MAX_PATH - 1] = '\0';
 #endif
 
-            // Query button count from device capabilities
-            DIDEVCAPS caps;
-            memset(&caps, 0, sizeof(DIDEVCAPS));
-            caps.dwSize = sizeof(DIDEVCAPS);
-            if (SUCCEEDED(pJoystick->GetCapabilities(&caps)))
-            {
-                joystick.m_ButtonCount = (int)caps.dwButtons;
-            }
-            else
-            {
-                joystick.m_ButtonCount = 32; // Default to maximum
-            }
-
-            ++im->m_JoystickCount;
-            return DIENUM_CONTINUE;
-        }
+    // Query button count from device capabilities
+    DIDEVCAPS caps;
+    memset(&caps, 0, sizeof(DIDEVCAPS));
+    caps.dwSize = sizeof(DIDEVCAPS);
+    if (SUCCEEDED(pJoystick->GetCapabilities(&caps)))
+    {
+        joystick.m_ButtonCount = (int)caps.dwButtons;
+    }
+    else
+    {
+        joystick.m_ButtonCount = 32; // Default to maximum
     }
 
-    return DIENUM_STOP;
+    ++im->m_JoystickCount;
+    return GetJoystickEnumerationAction(im->m_JoystickCount, im->m_MaxJoysticks, hr, TRUE);
 }
