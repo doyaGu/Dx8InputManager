@@ -611,7 +611,7 @@ int DX8InputManager::GetMouseWheelDelta()
 
 int DX8InputManager::GetMouseWheelPosition()
 {
-    return m_MouseWheelPosition;
+    return m_Mouse.m_WheelPosition;
 }
 
 void DX8InputManager::SetKeyDown(CKDWORD iKey)
@@ -681,14 +681,14 @@ void DX8InputManager::SetMousePosition(const Vx2DVector &position)
 void DX8InputManager::SetMouseWheel(int wheelDelta)
 {
     m_Mouse.m_State.lZ = wheelDelta;
-    m_MouseWheelPosition += wheelDelta;
+    m_Mouse.m_WheelPosition += wheelDelta;
 }
 
 void DX8InputManager::SetMouseWheelPosition(int position)
 {
-    int delta = position - m_MouseWheelPosition;
+    int delta = position - m_Mouse.m_WheelPosition;
     m_Mouse.m_State.lZ = delta;
-    m_MouseWheelPosition = position;
+    m_Mouse.m_WheelPosition = position;
 }
 
 void DX8InputManager::SetJoystickButtonDown(int iJoystick, int iButton)
@@ -1046,7 +1046,6 @@ DX8InputManager::DX8InputManager(CKContext *context) : CKInputManager(context, "
     m_Paused = FALSE;
     m_WasPaused = FALSE;
     m_EnableKeyboardRepetition = FALSE;
-    m_MouseWheelPosition = 0;
 
     Initialize((HWND)m_Context->GetMainWindow());
 
@@ -1178,3 +1177,4 @@ void DX8InputManager::ClearBuffers()
     m_Mouse.Clear();
     memset(m_KeyboardState, 0, sizeof(m_KeyboardState));
 }
+

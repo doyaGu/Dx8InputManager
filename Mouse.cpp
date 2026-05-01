@@ -6,6 +6,7 @@ DX8InputManager::CKMouse::CKMouse() : m_Device(NULL)
     memset(m_LastButtons, 0, sizeof(m_LastButtons));
     memset(m_Buffer, 0, sizeof(m_Buffer));
     m_NumberOfBuffer = 0;
+    m_WheelPosition = 0;
 }
 
 void DX8InputManager::CKMouse::Init(HWND hWnd)

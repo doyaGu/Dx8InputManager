@@ -72,6 +72,7 @@ public:
         CKBYTE m_LastButtons[4];
         DIDEVICEOBJECTDATA m_Buffer[MOUSE_BUFFER_SIZE];
         int m_NumberOfBuffer;
+        int m_WheelPosition;
     };
 
     class CKJoystick
@@ -287,7 +288,6 @@ protected:
     CKDWORD m_KeyboardRepeatDelay;
     CKDWORD m_KeyboardRepeatInterval;
     CKBOOL m_ShowCursor;
-    int m_MouseWheelPosition;
 
 private:
     void EnsureCursorVisible(CKBOOL iShow);
