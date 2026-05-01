@@ -49,8 +49,20 @@ void DX8InputManager::CKMouse::Release()
 
 void DX8InputManager::CKMouse::Clear()
 {
-    memset(m_LastButtons, 0, sizeof(m_LastButtons));
-    memset(m_State.rgbButtons, 0, sizeof(m_State.rgbButtons));
+    for (int i = 0; i < 4; ++i)
+    {
+        m_State.rgbButtons[i] = 0;
+        m_LastButtons[i] = 0;
+    }
+
+    m_State.lX = 0;
+    m_State.lY = 0;
+    m_State.lZ = 0;
+    m_Position.Set(0.0f, 0.0f);
+    m_WheelPosition = 0;
+
+    m_NumberOfBuffer = 0;
+    memset(m_Buffer, 0, sizeof(m_Buffer));
 }
 
 void DX8InputManager::CKMouse::Poll(CKBOOL pause)
