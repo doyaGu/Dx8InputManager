@@ -797,8 +797,7 @@ void DX8InputManager::ClearKeyboardState()
 
 void DX8InputManager::ClearMouseState()
 {
-    memset(m_Mouse.m_State.rgbButtons, 0, sizeof(m_Mouse.m_State.rgbButtons));
-    memset(m_Mouse.m_LastButtons, 0, sizeof(m_Mouse.m_LastButtons));
+    m_Mouse.Clear();
 }
 
 void DX8InputManager::ClearJoystickState(int joystickIndex)
