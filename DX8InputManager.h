@@ -119,22 +119,22 @@ public:
         Vx2DVector m_Sliders;
         CKDWORD m_PointOfViewAngle;
         CKDWORD m_Buttons;
-        CKDWORD m_Xmin;  // Minimum X-coordinate
-        CKDWORD m_Xmax;  // Maximum X-coordinate
-        CKDWORD m_Ymin;  // Minimum Y-coordinate
-        CKDWORD m_Ymax;  // Maximum Y-coordinate
-        CKDWORD m_Zmin;  // Minimum Z-coordinate
-        CKDWORD m_Zmax;  // Maximum Z-coordinate
-        CKDWORD m_XRmin; // Minimum X-rotation
-        CKDWORD m_XRmax; // Maximum X-rotation
-        CKDWORD m_YRmin; // Minimum Y-rotation
-        CKDWORD m_YRmax; // Maximum Y-rotation
-        CKDWORD m_ZRmin; // Minimum Z-rotation
-        CKDWORD m_ZRmax; // Maximum Z-rotation
-        CKDWORD m_Umin;  // Minimum u-coordinate (fifth axis)
-        CKDWORD m_Vmin;  // Minimum v-coordinate (sixth axis)
-        CKDWORD m_Umax;  // Maximum u-coordinate (fifth axis)
-        CKDWORD m_Vmax;  // Maximum v-coordinate (sixth axis)
+        LONG m_Xmin;  // Minimum X-coordinate
+        LONG m_Xmax;  // Maximum X-coordinate
+        LONG m_Ymin;  // Minimum Y-coordinate
+        LONG m_Ymax;  // Maximum Y-coordinate
+        LONG m_Zmin;  // Minimum Z-coordinate
+        LONG m_Zmax;  // Maximum Z-coordinate
+        LONG m_XRmin; // Minimum X-rotation
+        LONG m_XRmax; // Maximum X-rotation
+        LONG m_YRmin; // Minimum Y-rotation
+        LONG m_YRmax; // Maximum Y-rotation
+        LONG m_ZRmin; // Minimum Z-rotation
+        LONG m_ZRmax; // Maximum Z-rotation
+        LONG m_Umin;  // Minimum u-coordinate (fifth axis)
+        LONG m_Vmin;  // Minimum v-coordinate (sixth axis)
+        LONG m_Umax;  // Maximum u-coordinate (fifth axis)
+        LONG m_Vmax;  // Maximum v-coordinate (sixth axis)
     };
 
     virtual void EnableKeyboardRepetition(CKBOOL iEnable = TRUE);
@@ -195,8 +195,8 @@ public:
     virtual float GetJoystickGain(int iJoystick);            // Get current sensitivity gain
     virtual void SetJoystickGain(int iJoystick, float gain); // Set sensitivity gain (0.0 to 2.0, default 1.0)
 
-    virtual CKBOOL GetJoystickAxisRange(int iJoystick, CK_JOYSTICK_AXIS axis, CKDWORD *min, CKDWORD *max); // Query axis range
-    virtual CKBOOL SetJoystickAxisRange(int iJoystick, CK_JOYSTICK_AXIS axis, CKDWORD min, CKDWORD max);   // Set custom axis range
+    virtual CKBOOL GetJoystickAxisRange(int iJoystick, CK_JOYSTICK_AXIS axis, LONG *min, LONG *max); // Query axis range
+    virtual CKBOOL SetJoystickAxisRange(int iJoystick, CK_JOYSTICK_AXIS axis, LONG min, LONG max);   // Set custom axis range
     virtual CKBOOL ResetJoystickAxisRanges(int iJoystick);                                           // Reset all axes to device defaults
 
     // Keyboard repeat configuration methods

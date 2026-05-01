@@ -439,7 +439,7 @@ void DX8InputManager::SetJoystickGain(int iJoystick, float gain)
     m_Joysticks[iJoystick].m_Gain = gain;
 }
 
-CKBOOL DX8InputManager::GetJoystickAxisRange(int iJoystick, CK_JOYSTICK_AXIS axis, CKDWORD *min, CKDWORD *max)
+CKBOOL DX8InputManager::GetJoystickAxisRange(int iJoystick, CK_JOYSTICK_AXIS axis, LONG *min, LONG *max)
 {
     if (iJoystick < 0 || iJoystick >= m_JoystickCount)
     {
@@ -498,7 +498,7 @@ CKBOOL DX8InputManager::GetJoystickAxisRange(int iJoystick, CK_JOYSTICK_AXIS axi
     return TRUE;
 }
 
-CKBOOL DX8InputManager::SetJoystickAxisRange(int iJoystick, CK_JOYSTICK_AXIS axis, CKDWORD min, CKDWORD max)
+CKBOOL DX8InputManager::SetJoystickAxisRange(int iJoystick, CK_JOYSTICK_AXIS axis, LONG min, LONG max)
 {
     if (iJoystick < 0 || iJoystick >= m_JoystickCount)
     {
