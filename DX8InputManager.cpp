@@ -1074,7 +1074,12 @@ void DX8InputManager::Initialize(HWND hWnd)
     // Register with the DirectInput subsystem and get a pointer
     // to a IDirectInput interface we can use.
     // Create a DInput object
-    HRESULT hr = DirectInput8Create(::GetModuleHandle(TEXT("CK2.dll")), DIRECTINPUT_VERSION, IID_IDirectInput8, (void **)&m_DirectInput, NULL);
+#ifdef CK_LIB
+    HINSTANCE moduleHandle = ::GetModuleHandle(NULL);
+#else
+    HINSTANCE moduleHandle = ::GetModuleHandle(TEXT("CK2.dll"));
+#endif
+    HRESULT hr = DirectInput8Create(moduleHandle, DIRECTINPUT_VERSION, IID_IDirectInput8, (void **)&m_DirectInput, NULL);
     if (!m_DirectInput || FAILED(hr))
     {
         ::OutputDebugString(TEXT("DX8InputManager: DirectInput8Create failed"));

@@ -8,6 +8,11 @@
 #define CKGetPluginInfoCount			CKGet_InputManager_PluginInfoCount
 #define CKGetPluginInfo					CKGet_InputManager_PluginInfo
 #define g_PluginInfo					g_InputManager_PluginInfo
+#define CKInitializeParameterTypes      CKInputManagerInitializeParameterTypes
+#define CKInitializeOperationTypes      CKInputManagerInitializeOperationTypes
+#define CKInitializeOperationFunctions  CKInputManagerInitializeOperationFunctions
+#define CKUnInitializeParameterTypes    CKInputManagerUnInitializeParameterTypes
+#define CKUnInitializeOperationTypes    CKInputManagerUnInitializeOperationTypes
 #else
 #define CreateNewManager                CreateNewManager
 #define RemoveManager                   RemoveManager

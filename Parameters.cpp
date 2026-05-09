@@ -2,6 +2,14 @@
 
 #include "CKAll.h"
 
+#ifdef CK_LIB
+#define CKInitializeParameterTypes      CKInputManagerInitializeParameterTypes
+#define CKInitializeOperationTypes      CKInputManagerInitializeOperationTypes
+#define CKInitializeOperationFunctions  CKInputManagerInitializeOperationFunctions
+#define CKUnInitializeParameterTypes    CKInputManagerUnInitializeParameterTypes
+#define CKUnInitializeOperationTypes    CKInputManagerUnInitializeOperationTypes
+#endif
+
 #define CKOGUID_GETMOUSEPOSITION CKGUID(0x6ea0201, 0x680e3a62)
 #define CKOGUID_GETMOUSEX CKGUID(0x53c51abe, 0xeba68de)
 #define CKOGUID_GETMOUSEY CKGUID(0x27af3c9f, 0xdbc4eb3)

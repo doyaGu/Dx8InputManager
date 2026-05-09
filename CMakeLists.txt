@@ -54,6 +54,7 @@ endif ()
 # Project options
 # =============================================================================
 option(DX8INPUT_BUILD_STATIC "Build static library" OFF)
+option(DX8INPUT_BUILD_SHARED "Build shared library" ON)
 option(DX8INPUT_INSTALL "Generate install target" ${DX8INPUT_IS_TOP_LEVEL})
 
 # =============================================================================
@@ -182,13 +183,15 @@ endfunction()
 # =============================================================================
 # Targets
 # =============================================================================
-add_library(Dx8InputManager SHARED ${DX8INPUT_SOURCES} DX8InputManager.rc)
-dx8input_configure_target(Dx8InputManager)
-set_target_properties(Dx8InputManager PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-)
+if (DX8INPUT_BUILD_SHARED)
+    add_library(Dx8InputManager SHARED ${DX8INPUT_SOURCES} DX8InputManager.rc)
+    dx8input_configure_target(Dx8InputManager)
+    set_target_properties(Dx8InputManager PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+            ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+    )
+endif ()
 
 if (DX8INPUT_BUILD_STATIC)
     add_library(Dx8InputManagerStatic STATIC ${DX8INPUT_SOURCES})
@@ -202,10 +205,12 @@ endif ()
 # Installation
 # =============================================================================
 if (DX8INPUT_INSTALL)
-    install(TARGETS Dx8InputManager
-            RUNTIME DESTINATION Managers
-            LIBRARY DESTINATION Managers
-    )
+    if (TARGET Dx8InputManager)
+        install(TARGETS Dx8InputManager
+                RUNTIME DESTINATION Managers
+                LIBRARY DESTINATION Managers
+        )
+    endif ()
 
     if (DX8INPUT_BUILD_STATIC AND TARGET Dx8InputManagerStatic)
         install(TARGETS Dx8InputManagerStatic
