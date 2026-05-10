@@ -240,14 +240,14 @@ endif ()
 if (DX8INPUT_INSTALL)
     if (TARGET Dx8InputManager)
         install(TARGETS Dx8InputManager
-                RUNTIME DESTINATION Managers
-                LIBRARY DESTINATION Managers
+                RUNTIME DESTINATION Managers COMPONENT Runtime
+                LIBRARY DESTINATION Managers COMPONENT Runtime
         )
     endif ()
 
     if (DX8INPUT_BUILD_STATIC AND TARGET Dx8InputManagerStatic)
         install(TARGETS Dx8InputManagerStatic
-                ARCHIVE DESTINATION lib
+                ARCHIVE DESTINATION lib COMPONENT Development
         )
     endif ()
 endif ()
