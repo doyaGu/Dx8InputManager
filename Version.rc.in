@@ -26,6 +26,7 @@ BEGIN
             VALUE "FileDescription", "DirectX 8 Input Manager"
             VALUE "FileVersion", "@DX8INPUT_RC_VERSION_STRING@\0"
             VALUE "InternalName", "Dx8InputManager\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026\0"
             VALUE "OriginalFilename", "Dx8InputManager.dll\0"
             VALUE "ProductName", "Ballanced"
             VALUE "ProductVersion", "@DX8INPUT_RC_VERSION_STRING@\0"
