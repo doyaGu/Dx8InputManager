@@ -217,7 +217,12 @@ endfunction()
 # Targets
 # =============================================================================
 if (DX8INPUT_BUILD_SHARED)
-    add_library(Dx8InputManager SHARED ${DX8INPUT_SOURCES} DX8InputManager.rc)
+    set(_dx8input_version_resource DX8InputManager.rc)
+    if (COMMAND ballance_configure_version_resource AND DEFINED BALLANCE_MODULE_VERSION_OVERRIDE)
+        ballance_configure_version_resource(_dx8input_version_resource Dx8InputManager "DirectX 8 Input Manager" "Dx8InputManager.dll")
+    endif ()
+
+    add_library(Dx8InputManager SHARED ${DX8INPUT_SOURCES} ${_dx8input_version_resource})
     dx8input_configure_target(Dx8InputManager)
     set_target_properties(Dx8InputManager PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
