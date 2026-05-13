@@ -216,10 +216,32 @@ endfunction()
 # =============================================================================
 # Targets
 # =============================================================================
+function(dx8input_configure_version_resource OUT_VAR)
+    if (NOT DX8INPUT_VERSION_OVERRIDE MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$")
+        message(FATAL_ERROR "DX8INPUT_VERSION_OVERRIDE must be a numeric four-part version")
+    endif ()
+
+    string(REPLACE "." ";" _dx8input_version_parts "${DX8INPUT_VERSION_OVERRIDE}")
+    list(GET _dx8input_version_parts 0 DX8INPUT_RC_VERSION_MAJOR)
+    list(GET _dx8input_version_parts 1 DX8INPUT_RC_VERSION_MINOR)
+    list(GET _dx8input_version_parts 2 DX8INPUT_RC_VERSION_PATCH)
+    list(GET _dx8input_version_parts 3 DX8INPUT_RC_VERSION_TWEAK)
+    set(DX8INPUT_RC_VERSION_STRING "${DX8INPUT_VERSION_OVERRIDE}")
+    set(_dx8input_version_resource "${CMAKE_CURRENT_BINARY_DIR}/Dx8InputManagerVersion.generated.rc")
+
+    configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/Version.rc.in"
+            "${_dx8input_version_resource}"
+            @ONLY
+    )
+
+    set(${OUT_VAR} "${_dx8input_version_resource}" PARENT_SCOPE)
+endfunction()
+
 if (DX8INPUT_BUILD_SHARED)
     set(_dx8input_version_resource DX8InputManager.rc)
-    if (COMMAND ballance_configure_version_resource AND DEFINED BALLANCE_MODULE_VERSION_OVERRIDE)
-        ballance_configure_version_resource(_dx8input_version_resource Dx8InputManager "DirectX 8 Input Manager" "Dx8InputManager.dll")
+    if (DEFINED DX8INPUT_VERSION_OVERRIDE)
+        dx8input_configure_version_resource(_dx8input_version_resource)
     endif ()
 
     add_library(Dx8InputManager SHARED ${DX8INPUT_SOURCES} ${_dx8input_version_resource})
