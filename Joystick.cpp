@@ -338,10 +338,10 @@ BOOL DX8InputManager::JoystickEnum(const DIDEVICEINSTANCE *pdidInstance, void *p
     // Store the device product name (convert from TCHAR to char if needed)
 #ifdef UNICODE
     WideCharToMultiByte(CP_UTF8, 0, pdidInstance->tszProductName, -1,
-                        joystick.m_DeviceName, MAX_PATH, NULL, NULL);
+                        joystick.m_DeviceName, JOYSTICK_DEVICE_NAME_SIZE, NULL, NULL);
 #else
-    strncpy(joystick.m_DeviceName, pdidInstance->tszProductName, MAX_PATH - 1);
-    joystick.m_DeviceName[MAX_PATH - 1] = '\0';
+    strncpy(joystick.m_DeviceName, pdidInstance->tszProductName, JOYSTICK_DEVICE_NAME_SIZE - 1);
+    joystick.m_DeviceName[JOYSTICK_DEVICE_NAME_SIZE - 1] = '\0';
 #endif
 
     // Query button count from device capabilities

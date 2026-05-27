@@ -8,6 +8,7 @@
 
 #define KEYBOARD_BUFFER_SIZE 256
 #define MOUSE_BUFFER_SIZE 256
+#define JOYSTICK_DEVICE_NAME_SIZE 260
 
 // Joystick axis enumeration for configuration methods
 enum CK_JOYSTICK_AXIS
@@ -109,7 +110,7 @@ public:
 
         LPDIRECTINPUTDEVICE8 m_Device;
         GUID m_DeviceGUID;           // Device instance GUID
-        char m_DeviceName[MAX_PATH]; // Device product name
+        char m_DeviceName[JOYSTICK_DEVICE_NAME_SIZE]; // Device product name
         AxisCapabilities m_AxisCaps; // Track which axes are available on this device
         float m_DeadzoneRadius;      // Deadzone radius (0.0 to 1.0, default 0.01)
         float m_Gain;                // Sensitivity gain multiplier (0.0 to 2.0, default 1.0)
